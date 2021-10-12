@@ -59,7 +59,7 @@ All of the listings are a GZ file, namely they are archive files compressed by t
 
 # use cache=TRUE so you dont donwload the data everytime you knit
 
-listings <- vroom("http://data.insideairbnb.com/the-netherlands/north-holland/amsterdam/2021-09-07/data/listings.csv.gz") %>% 
+listings_p <- vroom("http://data.insideairbnb.com/the-netherlands/north-holland/amsterdam/2021-09-07/data/listings.csv.gz") %>% 
        clean_names()
 
 ```
@@ -136,21 +136,19 @@ Next, we look at the variable `property_type`. We can use the `count` function t
 
 Since the vast majority of the observations in the data are one of the top four or five property types, we would like to create a simplified version of `property_type` variable that has 5 categories: the top four categories and `Other`. Fill in the code below to create `prop_type_simplified`.
 
-```
-listings <- listings %>%
+
+
+```{r}
+listings <- listings_p %>%
   mutate(prop_type_simplified = case_when(
-    property_type %in% c("______","______", "______","______") ~ property_type, 
-    TRUE ~ "Other"
-  ))
+    property_type %in% c("Entire rental unit",
+                         "Private room in rental unit", 
+                         "Entire residential home",	
+                         "Entire townhouse") ~ property_type, 
+    TRUE ~ "Other"))
   
 ```
-Use the code below to check that `prop_type_simplified` was correctly made.
 
-```
-listings %>%
-  count(property_type, prop_type_simplified) %>%
-  arrange(desc(n))        
-```        
 
 Airbnb is most commonly used for travel purposes, i.e., as an alternative to traditional hotels. We only want to include  listings in our regression analysis that are intended for travel purposes:
 
@@ -259,3 +257,35 @@ knitr::include_graphics(here::here("images", "rubric.png"), error = FALSE)
 # Acknowledgements
 
 - The data for this project is from [insideairbnb.com](insideairbnb.com)
+
+
+
+```{r}
+# Relation between variables
+listings2 <- listings %>% 
+  select(c("host_since", "host_is_superhost", "neighbourhood_cleansed", "property_type", "room_type", "accommodates","price", "review_scores_rating", "number_of_reviews", "reviews_per_month","bedrooms","availability_30","last_review","license"))
+
+listings2 <- listings2 %>% 
+  mutate(price = parse_number(price))
+
+listings2<-listings2 %>% 
+  mutate(license = ifelse(is.na(license), "no","yes"))
+
+listings2
+```
+```{r}
+#Looking at the raw values.
+skim(listings2)
+```
+
+```{r}
+#Visualizing data
+favstats(price~bedrooms, data=listings2)
+
+```
+```
+
+
+```{r}
+
+```
