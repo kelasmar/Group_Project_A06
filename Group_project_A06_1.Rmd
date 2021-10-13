@@ -311,7 +311,7 @@ listings %>%
 ## From this map, we concluded that more properties are available in the central area of Amsterdam. We would like to further investigate the relationship between the price of listings and the locations of properties. 
 ```{r}
 favstats(price~neighbourhood_cleansed,data=listings2)
-## First, we skimmed the neighbourhood cleansed data to analyse the distribution of price of listings depends on neighbourhood. From the table below,  we found out that median price will better suits the purpose of our research than the mean price because the distribution of price of each neighbourhood is greaatly skewed with extreme outliers. For example, Centrum-West neighbourhood has a mean price of USD186 while the most expensive property costs USD8000, causing a large standard deviation of USD231. Hence, standard deviation is unusually large among neighbourhood
+## First, we skimmed the neighbourhood cleansed data to analyse the distribution of price of listings depends on their neighbourhood. From the table below,  we found out that median price will better suit the purpose of our research than the mean price because the distribution of price of each neighbourhood is greatly skewed due to extreme outliers. For example, Centrum-West neighbourhood has a mean price of USD186 while the most expensive property costs USD8000, causing a large standard deviation of USD231. Therefore, we believe that the median price gives better understanding of the relationship between the price and the locations. 
 ```
 
 
@@ -333,7 +333,7 @@ ggplot(median_per_neighborhood,
   theme_bw() +
   NULL
 
-## The graph below shows that the more center we get, the more expensive the Airbnb becomes.
+## The graph below shows that as we get closer to center, the more expensive the Airbnb becomes. This confirms that location has a substaintial impact on the price of lisings. 
 ```
 
 ```{r}
