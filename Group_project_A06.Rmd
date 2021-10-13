@@ -271,7 +271,7 @@ listings2 <- listings2 %>%
 listings2<-listings2 %>% 
   mutate(license = ifelse(is.na(license), "no","yes"))
 
-listings2
+skim(listings)
 ```
 ```{r}
 #Looking at the raw values.
@@ -279,13 +279,58 @@ skim(listings2)
 ```
 
 ```{r}
-#Visualizing data
-favstats(price~bedrooms, data=listings2)
-
-```
+## Visualisation
 ```
 
 
 ```{r}
+#Location
+listings %>% 
+  leaflet() %>% 
+  addProviderTiles("OpenStreetMap.Mapnik") %>% 
+  addCircleMarkers(lng = ~longitude, 
+                   lat = ~latitude, 
+                   radius = 1,
+                   fillOpacity = 0.3, 
+                   popup = ~listing_url,
+                   label = ~property_type,
+                   clusterOptions = markerClusterOptions()
+                   )
+```
+
+
+```{r}
+favstats(price~neighbourhood_cleansed,data=listings2)
+#blablabla sd big = use median
+```
+
+
+```{r}
+median_per_neighborhood <- listings2 %>% 
+  group_by(neighbourhood_cleansed) %>% 
+  summarise(median_price = median(price))
+
+ggplot(median_per_neighborhood,
+       aes(x = reorder(neighbourhood_cleansed, median_price),
+           y= median_price)) +
+  geom_col(fill = "skyblue") +
+  labs(
+    title = "Median price per night per Neighborhood",
+    x="Neighborhood",
+    y="Median Price"
+    ) +
+  coord_flip() +
+  theme_bw() +
+  NULL
+
+## Center more expensive....confirm the importance of location (location! location! location!)
+```
+
+```{r}
+
+#Visualizing data
+favstats(price~bedrooms, data=listings2)
+
+## count relevant == stop at 5 bedrooms
 
 ```
