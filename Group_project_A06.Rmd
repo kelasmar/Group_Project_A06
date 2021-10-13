@@ -309,10 +309,13 @@ listings %>%
 ```
 ```{r}
 ## From this map, we concluded that more properties are available in the central area of Amsterdam. We would like to further investigate the relationship between the price of listings and the locations of properties. 
+```
+
 ```{r}
 favstats(price~neighbourhood_cleansed,data=listings2)
 ## First, we skimmed the neighbourhood cleansed data to analyse the distribution of price of listings depends on neighbourhood. From the table below,  we found out that median price will better suits the purpose of our research than the mean price because the distribution of price of each neighbourhood is greaatly skewed with extreme outliers. For example, Centrum-West neighbourhood has a mean price of USD186 while the most expensive property costs USD8000, causing a large standard deviation of USD231. Hence, standard deviation is unusually large among neighbourhood
 ```
+
 
 ```{r}
 main_neighbourhood <-favstats(price~neighbourhood_cleansed,data=listings2) %>% 
@@ -357,14 +360,14 @@ ggplot(median_per_neighborhood,
   theme_bw() +
   NULL
 
-## The graph below shows that the more center we get, the more expensive the Airbnb becomes.
+## The graph below shows that as we get closer to centre, the more expensive the Airbnb becomes. This confirms that location has a substantial impact on the price of listings.
 ```
 
 ```{r}
 #Visualizing data
 favstats(price~bedrooms, data=listings2)
 
-## count relevant == stop at 5 bedrooms
+## We skimmed our data to summarise the price distribution based on number of bedrooms. From the table below, we noticed that listings with more than five bedrooms have less than 10 samples, therefore, we decided to only include properties with up to five bedrooms. Furthermore, we found out that median price will better suit the purpose of our research than the mean price because the distribution of price based on number of bedrooms is greatly skewed due to extreme outliers. Therefore, we believe that the median price gives better understanding of the relationship between the price and the number of bedrooms.
 ```
 
 
@@ -386,7 +389,9 @@ ggplot(median_per_bedroom,
   theme_bw() +
   NULL
 ```
-
+```{r}
+## The graph shows that the median price per night of listings that have more bedrooms is higher than listings that have less bedrooms.
+```
 
 ```{r}
 favstats(price~review_scores_rating,data=listings2)
@@ -412,6 +417,9 @@ ggplot(median_per_rating,
   NULL
 
 ```
+```{r}
+## From the graph, we can see superhost has higher rating than non superhost. However, it is not clear if properties with superhost have higher prices. Therefore, we have decided to draw a regression line on the graph to identify the relationship between the median price and the ratings regardless whether the properties have superhost or not.
+```
 
 ```{r}
 
@@ -435,6 +443,9 @@ ggplot(median_per_rating_3,
   theme_bw() +
   NULL
 ```
+```{r}
+## By drawing a regression line between the median price and the ratings, we concluded that they share a positive correlation, which means higher ratings have higher median price, and vice versa.
+```
 
 ```{r}
 listing2_low_price <- listings2 %>% 
@@ -453,6 +464,10 @@ ggplot(listing2_low_price,aes(x=license,y=price))+
 ##not relevant
 ```
 ```{r}
+## By graphing a boxplot, we see that properties with license have higher Q1, median and Q3 value than properties without license. Hence, we conclude that properties with licence are more expensive than the others. 
+```
+
+```{r}
 
 listings2.1 <- listings2 %>% 
   select(c("price","host_since", "host_is_superhost", "review_scores_rating", "number_of_reviews", "reviews_per_month","last_review"))
@@ -470,4 +485,8 @@ ggpairs(listings2.2,cardinality_threshold=NULL)
 
 ggpairs(listings2.3,cardinality_threshold=NULL)
 
+```
+
+```{r}
+## We plotted a GG pairs plot to get a comprehensive overview of the relationship between the price of listings and the selected variables. 
 ```
