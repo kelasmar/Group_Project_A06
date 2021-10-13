@@ -327,10 +327,30 @@ ggplot(median_per_neighborhood,
 ```
 
 ```{r}
-
 #Visualizing data
 favstats(price~bedrooms, data=listings2)
 
 ## count relevant == stop at 5 bedrooms
+```
+
+
+```{r}
+median_per_bedroom <- listings2 %>% 
+  group_by(bedrooms) %>% 
+  filter(bedrooms<=5) %>% 
+  summarise(median_price = median(price))
+
+ggplot(median_per_bedroom,
+       aes(x = reorder(bedrooms,median_price),
+           y= median_price)) +
+  geom_col(fill = "orchid3") +
+  labs(
+    title = "Median price per night per bedrooms",
+    x="Bedrooms",
+    y="Median Price"
+    ) +
+  theme_bw() +
+  NULL
+
 
 ```
