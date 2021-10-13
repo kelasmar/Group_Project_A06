@@ -314,6 +314,30 @@ favstats(price~neighbourhood_cleansed,data=listings2)
 ## First, we skimmed the neighbourhood cleansed data to analyse the distribution of price of listings depends on neighbourhood. From the table below,  we found out that median price will better suits the purpose of our research than the mean price because the distribution of price of each neighbourhood is greaatly skewed with extreme outliers. For example, Centrum-West neighbourhood has a mean price of USD186 while the most expensive property costs USD8000, causing a large standard deviation of USD231. Hence, standard deviation is unusually large among neighbourhood
 ```
 
+```{r}
+main_neighbourhood <-favstats(price~neighbourhood_cleansed,data=listings2) %>% 
+  filter(n>=1000) %>% 
+  arrange(desc(n))
+
+c=main_neighbourhood$neighbourhood_cleansed
+
+listings_neigh<-listings2 %>% 
+  group_by(neighbourhood_cleansed) %>% 
+  filter(neighbourhood_cleansed==c) %>% 
+  summarize(price=price)
+
+
+ggplot(listings_neigh,aes(x=log(price),fill = neighbourhood_cleansed))+
+  geom_density(alpha=0.3) +    
+  labs(      
+      title = "Density plot for prices on whether host is superhost",
+      x = "price per night (log)",
+      y = "density") + 
+      theme_classic() + 
+    NULL
+
+
+```
 
 ```{r}
 median_per_neighborhood <- listings2 %>% 
@@ -384,7 +408,6 @@ ggplot(median_per_rating,
     x="Ratings",
     y="Median Price"
     ) +
-  geom_smooth(method=lm,colour="black",alpha=0)+
   theme_bw() +
   NULL
 
@@ -430,5 +453,21 @@ ggplot(listing2_low_price,aes(x=license,y=price))+
 ##not relevant
 ```
 ```{r}
+
+listings2.1 <- listings2 %>% 
+  select(c("price","host_since", "host_is_superhost", "review_scores_rating", "number_of_reviews", "reviews_per_month","last_review"))
+
+listings2.2 <- listings %>% 
+  select(c("price","neighbourhood_cleansed", "property_type", "room_type"))
+         
+listings2.3 <- listings %>% 
+  select(c("price","accommodates","bedrooms","availability_30"))
+
+
+ggpairs(listings2.1,cardinality_threshold=NULL)
+
+ggpairs(listings2.2,cardinality_threshold=NULL)
+
+ggpairs(listings2.3,cardinality_threshold=NULL)
 
 ```
