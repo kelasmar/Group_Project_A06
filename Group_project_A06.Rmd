@@ -309,7 +309,8 @@ listings %>%
 ```
 ```{r}
 ## From this map, we concluded that more properties are available in the central area of Amsterdam. We would like to further investigate the relationship between the price of listings and the locations of properties. 
-```{r}
+
+
 favstats(price~neighbourhood_cleansed,data=listings2)
 ## First, we skimmed the neighbourhood cleansed data to analyse the distribution of price of listings depends on neighbourhood. From the table below,  we found out that median price will better suits the purpose of our research than the mean price because the distribution of price of each neighbourhood is greaatly skewed with extreme outliers. For example, Centrum-West neighbourhood has a mean price of USD186 while the most expensive property costs USD8000, causing a large standard deviation of USD231. Hence, standard deviation is unusually large among neighbourhood
 ```
@@ -464,10 +465,10 @@ listings2.3 <- listings %>%
   select(c("price","accommodates","bedrooms","availability_30"))
 
 
-ggpairs(listings2.1,cardinality_threshold=NULL)
+#ggpairs(listings2.1,cardinality_threshold=NULL)
 
-ggpairs(listings2.2,cardinality_threshold=NULL)
+#ggpairs(listings2.2,cardinality_threshold=NULL)
 
-ggpairs(listings2.3,cardinality_threshold=NULL)
+#ggpairs(listings2.3,cardinality_threshold=NULL)
 
 ```
