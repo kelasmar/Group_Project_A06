@@ -351,6 +351,74 @@ ggplot(median_per_bedroom,
     ) +
   theme_bw() +
   NULL
+```
 
+
+```{r}
+favstats(price~review_scores_rating,data=listings2)
+```
+
+
+```{r}
+median_per_rating <- listings2 %>% 
+  group_by(review_scores_rating) %>% 
+  summarise(median_price = median(price),
+            host_is_superhost=host_is_superhost) %>% 
+  na.omit()
+
+ggplot(median_per_rating,
+       aes(x = review_scores_rating,
+           y= median_price)) +
+  geom_point(aes(colour = host_is_superhost)) +
+  labs(title = "Median price per night vs. Ratings",
+    x="Ratings",
+    y="Median Price"
+    ) +
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  theme_bw() +
+  NULL
+
+```
+
+```{r}
+
+median_per_rating_3 <- listings2 %>% 
+  group_by(review_scores_rating) %>% 
+  filter(review_scores_rating>=3) %>% 
+  summarise(median_price = median(price),
+            host_is_superhost=host_is_superhost) %>% 
+  na.omit()
+
+
+ggplot(median_per_rating_3,
+       aes(x = review_scores_rating,
+           y= median_price)) +
+  geom_point(aes(colour = host_is_superhost)) +
+  labs(title = "Median price per night vs. Ratings",
+    x="Ratings",
+    y="Median Price"
+    ) +
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  theme_bw() +
+  NULL
+```
+
+```{r}
+listing2_low_price <- listings2 %>% 
+  filter(price<=800)
+
+ggplot(listing2_low_price,aes(x=license,y=price))+
+  
+  geom_boxplot(fill="wheat2")+
+  
+    labs(title = "Price per night vs. License",
+    x="License",
+    y=" Price"
+    )+
+  theme_bw()
+
+##not relevant
+```
+```{r}
 
 ```
