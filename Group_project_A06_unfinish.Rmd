@@ -223,7 +223,7 @@ avg_reviews=mean(listings2$reviews_per_month,na.rm=TRUE)
 
 listings2<-listings2 %>% 
   mutate(review_scores_rating=ifelse(is.na(review_scores_rating),avg_rating,review_scores_rating),
-        reviews_per_month=ifelse(is.na(reviews_per_month),avg_review,reviews_per_month) )
+        reviews_per_month=ifelse(is.na(reviews_per_month),avg_reviews,reviews_per_month) )
 
 # Remove missing values of host_is_superhost, bedrooms and beds
 listings2<-listings2 %>%
@@ -644,7 +644,7 @@ ggplot(listings_4_room,aes(x=log(price),fill=property_type))+
 listings_private<-listings_4 %>% 
   mutate(is_private_room = ifelse(property_type=="Private room in rental unit", "yes","no")) #creating categories
 
-t.test(price_4_nights ~ is_private_room, data = listings_4_room)
+t.test(price ~ is_private_room, data = listings_private)
 ```
 The t-value is way above 2 ant the p value is lower than 10^(-5). We can conclude that  private rooms seem to have a lower renting price. 
 ```{r}
