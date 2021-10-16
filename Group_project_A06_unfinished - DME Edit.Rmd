@@ -217,19 +217,52 @@ count_prop
 
 ```
 
-Since the vast majority of the observations in the data are one of the top four or five property types, we would like to create a simplified version of `neighbourhood cleansed` variable that has 5 categories: the top four categories and `Other`. 
+It seems there are too many neighbourhoods for 4 solid categories so we sort by price instead.
 
+
+
+
+```{r}
+neighbourhood_group <- listings2 %>% 
+  group_by(neighbourhood_cleansed) %>% 
+  summarize(price_median = median(price)) %>% 
+  arrange(desc(price_median))
+
+neighbourhood_group
+
+
+```
+
+                                  
 
 ```{r}
 #Simplify the "property_type" 
 listings2 <- listings2 %>%
   mutate(neighbourhood_cleansed = case_when(
-    neighbourhood_cleansed %in% c("De Baarsjes - Oud-West",
-                         "De Pijp - Rivierenbuurt", 
-                         "Centrum-West",	
-                         "Centrum-Oost") ~ neighbourhood_cleansed, 
-    TRUE ~ "Other"))
-
+                                  neighbourhood_cleansed == "Centrum-Oost" ~ "Top_5",
+                                  neighbourhood_cleansed == "Centrum-West" ~ "Top_5",
+                                  neighbourhood_cleansed == "IJburg - Zeeburgereiland" ~ "Top_5",
+                                  neighbourhood_cleansed == "Zuid" ~ "Top_5",
+                                  neighbourhood_cleansed == "De Pijp - Rivierenbuurt" ~ "Top_5",
+                                  neighbourhood_cleansed == "Oud-Noord" ~ "Top_6-10",
+                                  neighbourhood_cleansed == "Watergraafsmeer" ~ "Top_6-10",
+                                  neighbourhood_cleansed == "Oud-Oost" ~ "Top_6-10",
+                                  neighbourhood_cleansed == "Westerpark" ~ "Top_6-10",
+                                  neighbourhood_cleansed == "De Baarsjes - Oud-West" ~ "Top_6-10",
+                                  neighbourhood_cleansed == "Noord-West" ~ "Top_11-15",
+                                  neighbourhood_cleansed == "Noord-Oost" ~ "Top_11-15",
+                                  neighbourhood_cleansed == "Oostelijk Havengebied - Indische Buurt" ~ "Top_11-15",
+                                  neighbourhood_cleansed == "Buitenveldert - Zuidas" ~ "Top_11-15",
+                                  neighbourhood_cleansed == "Bos en Lommer" ~ "Top_11-15",
+                                  neighbourhood_cleansed == "Geuzenveld - Slotermeer" ~ "Remaining",
+                                  neighbourhood_cleansed == "Slotervaart" ~ "Remaining",
+                                  neighbourhood_cleansed == "De Aker - Nieuw Sloten" ~ "Remaining",
+                                  neighbourhood_cleansed == "Osdorp" ~ "Remaining",
+                                  neighbourhood_cleansed == "Gaasperdam - Driemond" ~ "Remaining",
+                                  neighbourhood_cleansed == "Bijlmer-Centrum" ~ "Remaining",
+                                  neighbourhood_cleansed == "Bijlmer-Oost" ~ "Remaining"))
+                                  
+                                
 #Check the `prop_type_simplified` was correctly made
 listings2 %>%
   count(neighbourhood_cleansed) %>%
@@ -359,18 +392,19 @@ listings_neigh<-listings2 %>%
 ggplot(listings_neigh,aes(x=log(price),fill = neighbourhood_cleansed))+
   geom_density(alpha=0.3) +    
   labs(      
-      title = "Price distribution in the most popular regions",
-      subtitle="Density plot for prices in the most popular regions",
+      title = "Difference in price by region expensiveness",
+      subtitle="Density plot for prices",
       x = "price per night (log)",
       y = "density") + 
       theme_classic() + 
   guides(fill=guide_legend(title="Neighbourhood regions"))+
+  facet_wrap(~neighbourhood_cleansed, ncol = 1) + 
   NULL
 
 
 ```
 
-The graph shows that the neighbourhoods are quite evenly distributed in terms of price and might be less of an interesting indicator than we initially expected.
+The graph shows that the neighbourhoods vary in price between neighbourhoods.
 
 
 
@@ -575,6 +609,7 @@ ggplot(listings_room,aes(x=log(price),fill = room_type))+
       y = "density") + 
       theme_classic() + 
   guides(fill=guide_legend(title="Room types"))+
+  facet_wrap(~room_type, ncol = 1) + 
   NULL
 
 
@@ -881,22 +916,145 @@ Still these factors are not correlated enough for us to be worried.
 
 For this section we have not chosen the neighbourhood_overview variables as it had a lot of NAs. 
 
-1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
+```{r}
+model6_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed, data = listings_4)
+summary(model6_1)
+```
+
+We see that neighbourgood categorization is a really impactful driver on our prices. 
+
+Testing VIF
+```{r}
+vif(model6_1)
+```
+Still VIF looks fine.
 
 
-1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
+### Availability
+
+Next lets look at availability in the coming 30 days
+
+```{r}
+model7_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30, data = listings_4)
+summary(model7_1)
+```
+
+Once again, this variable is a significant explanatory variable. Let's test for VIF once again:
+
+```{r}
+vif(model7_1)
+```
+
+All VIFS are low and therefore we make no changes.
+
+### License
+
+```{r}
+model8_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30 + license, data = listings_4)
+summary(model8_1)
+```
+
+
+License is indeed a significant predictor of price
+
+```{r}
+vif(model8_1)
+```
+
+### Removing Variables
+
+Given the above model beds is no longer significant so we would like to take that out. 
+
+```{r}
+model9_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30 + license, data = listings_4)
+summary(model9_1)
+```
 
 
 ## Diagnostics, collinearity, summary tables
 
-As you keep building your models, it makes sense to:
+Final VIF
 
-1. Check the residuals, using `autoplot(model_x)`
-1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
+```{r}
+vif(model9_1)
+```
+
+Variance inflation factor is below 5 for all variables and we keep them in for now. 
+
+```{r}
+autoplot(model9_1)
+```
+For our model we see that resudual errors are evenly distributed and do not change as the variable fitted values change. This is a good sign for our model.
+
+Futhermore we see from the theoretical quantiles that our model is approximately evenly distributed but not 100% evenly distributed. 
+
+As you keep building your models, it makes sense to:
 
 
 
 1. Create a summary table, using `huxtable` (https://mfa2022.netlify.app/example/modelling_side_by_side_tables/) that shows which models you worked on, which predictors are significant, the adjusted $R^2$, and the Residual Standard Error.
+
+
+```{r}
+huxreg(list("Prop Type, Reviews, Rating" = model1, "+ Room Type" = model2))
+       
+       
+huxreg(list("+ Beds + Bedrooms + Accom." = model3_2, "- Prop Type" = model3_3, " - Room Type + Prop Type"  = model3_4))
+
+
+```
+From here we decided to go with the model without Prop Type 
+
+```{r}
+
+huxreg(list("+ Superhost" = model4_1, "+ immidiate bookings" = model5_1, "+ Neighbourhoods" = model6_1, "+ Availability" = model7_1, "+ License" = model8_1,"- Beds" = model9_1))
+```
+
+Given the above, it seems both beds and license can be removed without any material effect. 
+
+```{r}
+model_final <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30, data = listings_4)
+summary(model_final)
+```
+
+```{r}
+vif(model_final)
+```
+Final Comparison of Models
+
+```{r}
+huxreg(list("All Variables"=model8_1, "- License"=model7_1,  "- Beds" = model9_1, "-Beds - License (final)" = model_final))
+```
+
+
+
+### Training in Testing sets.
+
+We now progres
+
+```{r}
+set.seed(1234)
+
+train_test_split <- initial_split(listings_4, prop = 0.75)
+listings_train <- training(train_test_split)
+listings_test <- testing(train_test_split)
+
+
+rmse_train <- listings_train %>% 
+  mutate(predictions = predict(model_final, .)) %>% 
+  summarise(sqrt(sum(predictions - price)**2/n())) %>% 
+  pull()
+rmse_train
+
+
+
+
+
+
+```
+
+
+
 
 
 1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
@@ -904,31 +1062,24 @@ As you keep building your models, it makes sense to:
 
 
 
-```{r}
-# Determining the most common type of rooms
-listings_room<-favstats(price~property_type,data=listings_4) %>% 
-  filter(n>=200) %>% 
-  arrange(desc(n))
 
-top_rooms=listings_room$property_type ##extracting the top rooms
 
-listings_4_room<-listings2 %>% 
-  filter(property_type==top_rooms) %>% 
-  filter(accommodates>=2) %>% ##taking the rooms that fit more than 2 people
-  group_by(property_type) %>% 
-  summarize(price=price)
 
-# Plot density of log(price_4_nights) per room type
-ggplot(listings_4_room,aes(x=log(price),fill=property_type))+
-  geom_density(alpha=0.3) +    
-  labs(      
-      title = "Density plot for prices for 4 nights by property type",
-      x = "price per night (log)",
-      y = "density") + 
-      theme_classic() + 
-    NULL
 
-```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
