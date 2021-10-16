@@ -757,10 +757,23 @@ We see that taking the log of prices brings us much closer to a normal distribut
 ## Model1: property type, number of reviews and the rating scores
 We first fit a regression model with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
 
+
+First, let us split the data into a training and testing set. The training will be used for the models
+
+
+```{r}
+set.seed(123456)
+
+train_test_split <- initial_split(listings_4, prop = 0.75)
+listings_train <- training(train_test_split)
+listings_test <- testing(train_test_split)
+```
+
+
 ```{r}
 
 #Create the model1
-model1 <- lm(log(price_4_nights) ~ prop_type_simplified +number_of_reviews +review_scores_rating ,data=listings_4)
+model1 <- lm(log(price_4_nights) ~ prop_type_simplified +number_of_reviews +review_scores_rating ,data=listings_train)
 summary(model1)
 
 ```
@@ -794,7 +807,7 @@ Now lets add the room type
 
 ```{r}
 #Create the model1
-model2 <- lm(log(price_4_nights) ~ prop_type_simplified +number_of_reviews +review_scores_rating + room_type ,data=listings_4)
+model2 <- lm(log(price_4_nights) ~ prop_type_simplified +number_of_reviews +review_scores_rating + room_type ,data=listings_train)
 summary(model2)
 ```
 Our model now explains slightly more butsome variables are no longer significant.
@@ -813,23 +826,14 @@ Let's keep the variables in
 ## Model 3: Bedrooms, beds and accomodates
 We want to further determine whether the number of`bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`.
 
-```{r}
-#Create the model to test the prediction effect of the number of bedrooms, beds, and the size of the house
-model3_1 <- lm(log(price_4_nights) ~ bedrooms + beds + accommodates, data = listings_4)
-summary(model3_1)
-car::vif(model3_1)
-
-
-
-```
-WE surprisingly see that VIF is not too high between beds, bedrooms, and accomodates so we keep them in for now.
+WE surprisingly see that VIF is not too high between beds, bedrooms, and accomodates so we keep them in for now. We will now include beds, because it is insignificant. 
 
 We do see that these factors explain quite well the price changes and has an Rsquare of 0.2818. Lets add it to our model
 
 ```{r}
 
 
-model3_2 <- lm(log(price_4_nights) ~ prop_type_simplified+number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates, data = listings_4)
+model3_1 <- lm(log(price_4_nights) ~ prop_type_simplified+number_of_reviews+review_scores_rating + beds +  room_type+bedrooms + accommodates, data = listings_4)
 
 ```
 
@@ -849,8 +853,8 @@ Let's try and run and see each model without one another.
 
 ```{r}
 ###
-model3_3 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates, data = listings_4)
-model3_4 <- lm(log(price_4_nights) ~ prop_type_simplified+number_of_reviews+review_scores_rating + bedrooms + beds + accommodates, data = listings_4)
+model3_3 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates, data = listings_4)
+model3_4 <- lm(log(price_4_nights) ~ prop_type_simplified+number_of_reviews+review_scores_rating + bedrooms + accommodates, data = listings_4)
 
 vif(model3_3)
 vif(model3_4)
@@ -875,7 +879,7 @@ We want to explore whether the superhosts `(host_is_superhost`) command a pricin
 First let us look at superhosts on a standalone basis 
 
 ```{r}
-model4_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost, data = listings_4)
+model4_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost, data = listings_4)
 summary(model4_1)
 
 ```
@@ -897,7 +901,7 @@ We see that VIF is below 5 for all variables meaning the variables do not have t
 1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
 
 ```{r}
-model5_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable, data = listings_4)
+model5_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable, data = listings_4)
 summary(model5_1)
 
 ```
@@ -917,7 +921,7 @@ Still these factors are not correlated enough for us to be worried.
 For this section we have not chosen the neighbourhood_overview variables as it had a lot of NAs. 
 
 ```{r}
-model6_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed, data = listings_4)
+model6_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed, data = listings_4)
 summary(model6_1)
 ```
 
@@ -935,7 +939,7 @@ Still VIF looks fine.
 Next lets look at availability in the coming 30 days
 
 ```{r}
-model7_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30, data = listings_4)
+model7_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30, data = listings_4)
 summary(model7_1)
 ```
 
@@ -950,25 +954,18 @@ All VIFS are low and therefore we make no changes.
 ### License
 
 ```{r}
-model8_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + beds + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30 + license, data = listings_4)
-summary(model8_1)
+model_final <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30 + license, data = listings_4)
+summary(model_final)
 ```
 
 
 License is indeed a significant predictor of price
 
 ```{r}
-vif(model8_1)
+vif(model_final)
 ```
 
-### Removing Variables
 
-Given the above model beds is no longer significant so we would like to take that out. 
-
-```{r}
-model9_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30 + license, data = listings_4)
-summary(model9_1)
-```
 
 
 ## Diagnostics, collinearity, summary tables
@@ -976,13 +973,14 @@ summary(model9_1)
 Final VIF
 
 ```{r}
-vif(model9_1)
+vif(model_final)
 ```
 
-Variance inflation factor is below 5 for all variables and we keep them in for now. 
+
+Variance inflation factor is below 5 for all variables. 
 
 ```{r}
-autoplot(model9_1)
+autoplot(model_final)
 ```
 For our model we see that resudual errors are evenly distributed and do not change as the variable fitted values change. This is a good sign for our model.
 
@@ -995,50 +993,26 @@ As you keep building your models, it makes sense to:
 1. Create a summary table, using `huxtable` (https://mfa2022.netlify.app/example/modelling_side_by_side_tables/) that shows which models you worked on, which predictors are significant, the adjusted $R^2$, and the Residual Standard Error.
 
 
-```{r}
-huxreg(list("Prop Type, Reviews, Rating" = model1, "+ Room Type" = model2))
-       
-       
-huxreg(list("+ Beds + Bedrooms + Accom." = model3_2, "- Prop Type" = model3_3, " - Room Type + Prop Type"  = model3_4))
 
-
-```
-From here we decided to go with the model without Prop Type 
-
-```{r}
-
-huxreg(list("+ Superhost" = model4_1, "+ immidiate bookings" = model5_1, "+ Neighbourhoods" = model6_1, "+ Availability" = model7_1, "+ License" = model8_1,"- Beds" = model9_1))
-```
 
 Given the above, it seems both beds and license can be removed without any material effect. 
 
-```{r}
-model_final <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30, data = listings_4)
-summary(model_final)
-```
+Final Table
+
 
 ```{r}
-vif(model_final)
-```
-Final Comparison of Models
+huxreg(list("Prop Type, Reviews, Rating" = model1, "+ Room Type" = model2, "+ Beds + Bedrooms + Accom." = model3_2, "- Prop Type" = model3_3, " - Room Type + Prop Type"  = model3_4, "+ Superhost" = model4_1, "+ immidiate bookings" = model5_1, "+ Neighbourhoods" = model6_1, "+ Availability" = model7_1, "+ License (Final)" = model_final))
 
-```{r}
-huxreg(list("All Variables"=model8_1, "- License"=model7_1,  "- Beds" = model9_1, "-Beds - License (final)" = model_final))
 ```
 
 
 
-### Training in Testing sets.
+
+### Overfitting test
 
 We now test our model for overfitting
 
 ```{r}
-set.seed(1234)
-
-train_test_split <- initial_split(listings_4, prop = 0.75)
-listings_train <- training(train_test_split)
-listings_test <- testing(train_test_split)
-
 
 rmse_train <- listings_train %>% 
   mutate(predictions = predict(model_final, .)) %>% 
@@ -1054,10 +1028,12 @@ rmse_test <- listings_test %>%
 rmse_test
 
 
-
-
-
 ```
+
+We see that the model is still closely predicting the same for the test set and training set. 
+
+
+
 
 
 
@@ -1065,6 +1041,67 @@ rmse_test
 
 1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
   - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
+
+
+
+First let us define our target segment
+
+
+
+```{r}
+
+#Add another filter for average rating of at least 90
+
+targets <- listings_4 %>% 
+  filter(room_type == "Private room", 
+         number_of_reviews >= 10, 
+         review_scores_rating >= 4.5) %>% 
+  mutate(log_predicted_values = predict(model_final, .),
+         predicted_price = exp(log_predicted_values)) 
+
+
+targets_test <- targets %>% 
+  
+  summarise(
+    average_price=mean(predicted_price), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
+            
+    sd_price=sd(predicted_price), #Standard Deviation
+            
+    count= n(), #Observations
+           
+    t_critical = qt(0.975,count-1), #T-Critical at 95% Confidence Interval and these observations
+            
+    se_price=sd_price/sqrt(count), #Standard Error 
+           
+    margin_of_error= t_critical*se_price, #Margin of Error
+            
+    price_low= average_price - margin_of_error, #Lower interval
+            
+    price_high= average_price + margin_of_error) #Upper Interval 
+
+
+targets_test
+         
+
+skim(targets$predicted_price)
+
+
+
+```
+
+
+The point prediction is the mean equivalent of a price for 2 people for 4 nights of 379.38  
+The confindence interval for the mean payment of 2 people spending 4 nights is 373-384 $. 
+
+
+
+
+
+
+
+
+
+
 
 
 
