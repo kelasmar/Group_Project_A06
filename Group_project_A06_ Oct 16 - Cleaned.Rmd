@@ -282,6 +282,54 @@ listings2 <- subset(listings2, select = -property_type)
 
 Our table comes out as expected and we can see that all smaller property types are in the other category. 
 
+```{r}
+#Using above dataset for the confidence interval calculations
+formula_ci <- listings2%>% 
+  group_by(prop_type_simplified) %>% 
+  
+  #Calculate weight's summary statistics for people exercising at least 3 times a week 
+  
+  # calculate mean, SD, count, SE, lower/upper 95% CI
+  summarise(
+    average_price=mean(price,na.rm=TRUE), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
+            
+    sd_price=sd(price,na.rm=TRUE), #Standard Deviation
+            
+    count= n(), #Observations
+           
+    t_critical = qt(0.975,count-1), #T-Critical at 95% Confidence Interval and these observations
+            
+    se_price=sd_price/sqrt(count), #Standard Error 
+           
+    margin_of_error= t_critical*se_price, #Margin of Error
+            
+    price_low= average_price - margin_of_error, #Lower interval
+            
+    price_high= average_price + margin_of_error) #Upper Interval 
+
+formula_ci
+
+ggplot(formula_ci, aes(x=average_price, y=prop_type_simplified, color=prop_type_simplified)) +
+
+#geom_errorbar function allows us to show the two bars with confidence intervals
+
+geom_errorbar(aes(xmin=price_low, xmax=price_high),width = 0.1, size=0.5)+ 
+  
+geom_point(aes(x=average_price),size=1)+
+
+  
+theme_bw() +
+  
+theme(legend.position = "none",axis.title.y=element_blank())+
+  
+  labs(title = "Confidence interval for average price per property type",
+       subtitle = "95% confidence intervals overlap",
+       x = "Average Price"
+       ) +
+  NULL
+
+```
+The property type seems to have a significant effect on prices. The length of the intervals mainly vary due to the differences in sample size. The most common property type (Entire rental unit) has a small interval because it has the larger sample. We can estimate quite aaccuratly the average price in this category.
 
 ### Neighbourhood
 
@@ -566,6 +614,10 @@ ggplot(listings_neigh,aes(x=log(price), y = desc(new), fill = new))+
       x = "Price per night (log)",
       y = "Density") + 
       theme_classic() + 
+  
+  theme(axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
   
   #Title of Legend
   guides(fill=guide_legend(title="Neighbourhood regions"))+ 
@@ -1078,6 +1130,53 @@ Interestingly although entire homes or apartments are the most expensive in term
 We also see that these distributions are multimodal - i.e. prices are clustered around specific levels. 
 
 
+```{r}
+#Using above dataset for the confidence interval calculations
+formula_ci <- listings2%>% 
+  group_by(room_type) %>% 
+  
+  #Calculate weight's summary statistics for people exercising at least 3 times a week 
+  
+  # calculate mean, SD, count, SE, lower/upper 95% CI
+  summarise(
+    average_price=mean(price,na.rm=TRUE), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
+            
+    sd_price=sd(price,na.rm=TRUE), #Standard Deviation
+            
+    count= n(), #Observations
+           
+    t_critical = qt(0.975,count-1), #T-Critical at 95% Confidence Interval and these observations
+            
+    se_price=sd_price/sqrt(count), #Standard Error 
+           
+    margin_of_error= t_critical*se_price, #Margin of Error
+            
+    price_low= average_price - margin_of_error, #Lower interval
+            
+    price_high= average_price + margin_of_error) #Upper Interval 
+
+formula_ci
+
+ggplot(formula_ci, aes(x=average_price, y=room_type, color=room_type)) +
+
+#geom_errorbar function allows us to show the two bars with confidence intervals
+
+geom_errorbar(aes(xmin=price_low, xmax=price_high),width = 0.1, size=0.5)+ 
+  
+geom_point(aes(x=average_price),size=1)+
+
+  
+theme_bw() +
+  
+theme(legend.position = "none",axis.title.y=element_blank())+
+  
+  labs(title = "Confidence interval for average price per room type",
+       subtitle = "95% confidence intervals overlap",
+       x = "Average Price"
+       ) +
+  NULL
+```
+The confidence intervals' lengths are very different between each room type. Shared and hotel rooms have wide widths. There is a big uncertainty related to their average price. On the other side, we can estimate quite accurately the entire and private homes' average.
 
 ### Property Type
 
