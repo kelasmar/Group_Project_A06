@@ -2242,7 +2242,7 @@ skim(targets$predicted_price)
 
 The point prediction is the mean equivalent of a price for 2 people for 4 nights of 381.25  
 
-The confindence interval for the mean payment of 2 people spending 4 nights is 375-386 $. 
+The confindence interval for the mean payment of 2 people spending 4 nights is 376-387. 
 
 
 # Acknowledgements
