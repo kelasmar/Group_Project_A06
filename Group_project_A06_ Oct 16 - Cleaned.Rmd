@@ -66,7 +66,7 @@ listings <- vroom("http://data.insideairbnb.com/the-netherlands/north-holland/am
 
 Let's first get an overview of our data
 
-##Data overview
+## Data overview
 
 We use `glimpse` and `skim` to gain a general view of the data. We have 74 variables and 16,116 observations. Variables include 24 character variables, 5 date variables, 8 logical variables, and 37 numeric variables. We also have some missing values throughout multiple of the variables in our data. 
 
