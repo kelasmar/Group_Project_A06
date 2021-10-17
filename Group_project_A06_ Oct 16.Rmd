@@ -60,12 +60,6 @@ listings <- vroom("http://data.insideairbnb.com/the-netherlands/north-holland/am
 
 ```
 
-MAKE SURE ALL OF THESE ARE ANSWERED:
-
-- How many variables/columns? How many rows/observations?
-- Which variables are numbers?
-- Which are categorical or *factor* variables (numeric or character variables with variables that have a fixed and known set of possible values?
-- What are the correlations between variables? Does each scatterplot support a linear relationship between variables? Do any of the correlations appear to be conditional on the value of a categorical variable?
 
 # Exploratory Data Analysis (EDA)
 
@@ -116,7 +110,6 @@ We will hypothesize that the following are key variables which will will be usin
 - `number_of_reviews`: Total number of reviews for the listing
 - `review_scores_rating`: Average review score (0 - 100)
 - `neighbourhood*`: three variables on a few major neighbourhoods in each city 
-- `Host_since`: How the long the host has been on Airbnb
 - `accomodations`: How many people can stay in the room per night
 - `beds`: Number of beds
 - `host_is_superhost`: Whether the host has superhost status
@@ -124,7 +117,6 @@ We will hypothesize that the following are key variables which will will be usin
 - `bedrooms`: Number of bedrooms
 - `reviews_per_month`: Number of reviews per month
 - `availability_30`: Available stays next 30 days
-- `last_review`: Last review date
 - `license`: license number
 - `instant_bookable`: Whether the room can be instantly booked
 
@@ -624,6 +616,8 @@ ggplot(median_per_neighborhood,
 
 Plotting on a median price basis indicates that these prices are still indeed impacted by how close they are to center.
 
+
+
 ### Number of Bedrooms
 We skimmed our data to summarise the price distribution based on number of bedrooms. 
 
@@ -636,29 +630,53 @@ favstats(price~bedrooms, data=listings2)
 ```
 The graph shows that the listings having more bedrooms have a higher median price.
 
-```{r}
-#Filter the bedrooms under 5 for further discussion
+We would like to plot this information
 
+```{r}
+#Filter the bedrooms under 5 to remove outliers
 listings2 <- listings2 %>% 
   filter(bedrooms<=5)
 
+#Median calculations
 median_per_bedroom <- listings2 %>% 
+  
+  #By Bedroom
   group_by(bedrooms) %>% 
+  
+  #Summarized by median price
   summarise(median_price = median(price))
 
-#Plot the graph
+#Plotting the graph
 ggplot(median_per_bedroom,
+       
+       #Bedroom by price
        aes(x = reorder(bedrooms,median_price),
+           
+           #Price on Y Axis
            y= median_price)) +
+  
+  #in Column format
   geom_col(fill = "orchid3") +
+  
+  #With useful labelss
   labs(
     title = "Median price per night per bedrooms",
     x="Number of Bedrooms",
     y="Median Price"
     ) +
+  
+  #To flip axis
+  coord_flip() +
+  
+  #Simple theme
   theme_bw() +
   NULL
 ```
+
+We see a strong relationship with number of bedrooms and price.
+
+We assume number of bedrooms will have high correlation with accommodation and number of beds and will therefore leave those two variables out for now. 
+
 
 ### Ratings 
 We skimmed our data to summarise the price distribution based on the rating score.
@@ -668,101 +686,308 @@ We skimmed our data to summarise the price distribution based on the rating scor
 favstats(price~review_scores_rating,data=listings2)
 ```
 
+
+
 By drawing a regression line between the median price and the ratings, we concluded that they share a positive correlation, which means higher ratings have higher median price, and vice versa.
+
+We will use two different methods for this, first we will use the median for each rating creating a smaller subset of datapoints:
 
 ```{r}
 ##Create the data of price and score rating
 median_per_rating <- listings2 %>% 
+  
+  #Group by review
   group_by(review_scores_rating) %>% 
+  
+  #Summarize by median price
   summarise(median_price = median(price)) %>% 
+  
+  #Exclude NA's 
   na.omit()
 
 
+#Plotting
 ggplot(median_per_rating,
+       
+       #Review scores vs median price
        aes(x = review_scores_rating,
            y= median_price)) +
+  
+  #Coloring red dots
   geom_point(color="red") +
+  
+  #Adding useful titles
   labs(title = "Median price per night vs. Ratings",
     x="Ratings",
     y="Median Price"
     ) +
+  
+  #Adding a trend line
   geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Simple theme
   theme_bw() +
+  
+  ylim(0, 200) + 
   NULL
 
 
 ```
 
-Additional chart. 
+
+We see some relationship between price and ratings. Let's explore this further and see if this depends on the room type.  
 
 ```{r}
-ggplot(listings2, aes(x = review_scores_rating, y = log(price))) + 
-  geom_point(color = "red") + 
+#Plotting by rating but log of price
+ggplot(listings2, aes(x = review_scores_rating, y = log(price), color = room_type)) + 
+  
+  #In red color 
+  geom_point(alpha = 0.5) + 
+  
+  #And adding a trendline
   geom_smooth(se = F, method = "lm", color = "black") + 
-  theme_bw()
+  
+  #In minimal Theme
+  theme_bw() + 
+  
+    #Adding useful titles
+  labs(title = "Log price per night vs. Ratings",
+    x="Ratings",
+    y="Log Price"
+    ) +
+  
+  facet_wrap(~ room_type, scales = "free") + 
+  
+  guides(color=F) + 
+  
+  NULL
 ```
 
+Interestingly, especially hotel rooms are sensitive to review ratings. 
 
-We further find out that superhost has higher rating than non superhost by coloring the below above graph by host type.
+### Superhosts
+
+Let's first look at a key summary
+
+```{r}
+#Analyse the distribution of price of listings depends on the rating score
+favstats(price~host_is_superhost,data=listings2)
+```
+
+Interestingly, superhosts seem to have a higher price than non-superhosts. Let's plot some relationships to explore this further.
 
 ```{r}
 #Create the data of price, score rating, and superhost
 median_per_rating1 <- listings2 %>% 
+  
+  #grouping by review score
   group_by(review_scores_rating) %>% 
+  
+  #Summarizing by price and superhost
   summarise(median_price = median(price),
             host_is_superhost=host_is_superhost) %>% 
+  
+  #Excluding NA's
   na.omit()
 
-
+#Plotting the dataset 
 ggplot(median_per_rating1,
+       
+       #By same as above but including host is superhost
        aes(x = review_scores_rating,
-           y= median_price)) +
-  geom_point(aes(colour = host_is_superhost)) +
+           y= median_price, 
+           colour = host_is_superhost)) +
+  
+  #Adding scatterplot
+  geom_point() +
+  
+  #Adding useful labels
   labs(title = "Median price per night vs. Ratings",
     x="Ratings",
     y="Median Price"
     ) +
+  
+  #Adding Trendline
   geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Adding a simple theme
   theme_bw() +
-  guides(fill=guide_legend(title="Host is Superhost"))+
+  
+  #Adding a legend
+  guides(color=guide_legend(title="Host is Superhost"))+
+  
+  #Wrapping by host type to get two different charts
   facet_wrap(~host_is_superhost)
   
   NULL
 
 ```
 
+Interestingly we see a very strong correlation between both of these to ratings. So far so good so our past conclusions still hold true. 
 
-Similarly we can graph a relationship between number of reviews and price
+Now let's also take a look at the effect from superhosts themselves:
+
+```{r}
+
+#Plotting by host type
+ggplot(listings2,
+       
+       #Adding key variables
+       aes(x=host_is_superhost,
+           y=log(price), 
+           fill = host_is_superhost))+
+  
+  #Looking at a boxplot for distribution
+  geom_boxplot()+
+  
+  #Adding useful labels
+  labs(title = "Superhost versus non superhosts price distributions",
+    x="Superhost",
+    y=" Log Price"
+    )+
+  
+  #Removing legend
+  guides(fill = F) + 
+  
+  #Simple Theme
+  theme_bw() + 
+  
+  NULL
+```
+It seems there are more variation amongst non-superhosts. Let's confirm this:
+
+```{r}
+#Plot the density graph
+ggplot(listings2,
+       aes(x=log(price), 
+           y = host_is_superhost, 
+           fill = host_is_superhost))+
+  
+  #Density Ridges Plit
+  geom_density_ridges(alpha=0.3) +    
+  
+  #Useful lables
+  labs(      
+      title = "Prices by host type",
+      x = "Price per night (log)",
+      y = "Density") + 
+      theme_classic() + 
+  
+  #Title of Legend
+  guides(fill=F)+ 
+  
+  #Plotting a vertical line at the median
+  geom_vline(xintercept = median(log(listings2$price)), colour = "#001e62")+
+  NULL
+```
+
+The two distributions look similar but it is worth noting some skew in superhosts. 
+
+
+### Number of reviews
+
+
+Similarly we can graph a relationship between number of reviews and price. 
+
+As this is a numerical variable with many ranges we will not use favstats to look into this. 
+
 
 ```{r}
 ggplot(listings2, 
+       
+       #Plotting reviews by price
        aes(x = number_of_reviews,
            y= log(price))) +
-  geom_point(color="red") +
+  
+  #Adding color to the chart
+  geom_point(color="red", alpha = 0.3) +
+  
+  #Adding useful labels
   labs(title = "Price per night vs. number of Reviews",
     x="Number of Reviews",
     y="Log Price"
     ) +
+  
+  #Adding a trendline
   geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Adding BW Theme
   theme_bw() +
+  
   NULL
 ```
 
-WE see that as the number of reviews increase the price falls, likely because these are less premium properties. 
+WE see that as the number of reviews increase the price falls, likely because these are less premium properties. This will be useful for our regression models. 
 
-### License 
-We want to find out the relationship between license and price of linceses. By graphing a boxplot, we see that properties with license have higher Q1, median and Q3 value than properties without license. Hence, we conclude that properties with licence are more expensive than the others.
+Let's check if this holds across categorical variables
 
 ```{r}
-listing2_low_price <- listings2 
+ggplot(listings2, 
+       
+       #Plotting reviews by price
+       aes(x = number_of_reviews,
+           y= log(price),
+           color = room_type)) +
+  
+  #Adding color to the chart
+  geom_point(alpha = 0.5) +
+  
+  #Adding useful labels
+  labs(title = "Price per night vs. number of Reviews",
+    x="Number of Reviews",
+    y="Log Price"
+    ) +
+  
+  #Adding a trendline
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Adding BW Theme
+  theme_bw() +
+  
+  #Wrapping by host type to get two different charts
+  facet_wrap(~room_type, scales ="free") + 
+  
+  guides(color = F) + 
+  
+  NULL
+```
+This is super interesting to see because we see that the relationship depends on room types. Therefore it is important to control for room type when looking at the effect of number of reviews!
 
-ggplot(listing2_low_price,aes(x=license,y=log(price)))+
+
+### License 
+
+
+Let's first look at a summary of the data:
+
+
+```{r}
+#Analyse the distribution of price of listings depends on the rating score
+favstats(price~license,data=listings2)
+```
+We see that licenses have higher mean and median prices. 
+
+By graphing a boxplot, we see that properties with license have higher Q1, median and Q3 value than properties without license. Hence, we conclude that properties with licence are more expensive than the others.
+
+```{r}
+
+#Plotting the data
+ggplot(listings2,
+       aes(x=license,
+           y=log(price)))+
+  
+  #In Wheat Color
   geom_boxplot(fill="wheat2")+
+  
+  #Useful labels
   labs(title = "Price per night vs. License",
     x="License",
     y=" Price"
     )+
-  theme_bw()
+  
+  #BW Theme
+  theme_bw()+ 
+  
+  NULL
 
 ```
 We see that there is a higher spread on prices of properties without licenses and a slightly lower average. 
@@ -770,57 +995,98 @@ We see that there is a higher spread on prices of properties without licenses an
 
 ### Room type
 
+
+```{r}
+#Analyse the distribution of price of listings depends on the rating score
+favstats(price~room_type,data=listings2)
+```
+
+There seems to be an extremely strong relationship between room type and price. This is good for our analysis but let's first plot it further.
+
+First let's visualize the means
+
 ```{r}
 #Calculate the median price of different room types
 median_per_room <- listings2 %>% 
+  
+  #By Room
   group_by(room_type) %>% 
+  
+  #In median Prices
   summarise(median_price = median(price))
 
 #Plot the graph
 ggplot(median_per_room,
+       
+       #Reorder by price
        aes(x = reorder(room_type, median_price),
+           
+           #Price on Y Axis
            y= median_price)) +
+  
+  #Column Chart
   geom_col(fill = "skyblue") +
+  
+  #Useful Labels
   labs(
     title = "Median price by room_type",
     x="Room Type",
     y="Median Price"
     ) +
+  
+  #Flipping for aesthetics
   coord_flip() +
+  
+  #Simple theme for aesthetics
   theme_bw() +
   NULL
 ```
-We see that entire homes and hotel rooms are especially expensive. We can also plot the density of this
-
-
+We see that entire homes and hotel rooms are especially expensive. We would like to plot the density of this to explore it further:
 
 
 ```{r}
-#Create the dataset of the top Room type and the price
-listings_room<-listings2 %>% 
-  group_by(room_type) %>% 
-  summarize(price=price)
-
-#Plot the density graph
-ggplot(listings_room,aes(x=log(price),fill = room_type))+
-  geom_density(alpha=0.3) +    
+#Density Plot
+ggplot(listings2,
+       aes(x=log(price), 
+           y = room_type, 
+           fill = room_type))+
+  
+  #Density Ridges Plit
+  geom_density_ridges(alpha=0.3) +    
+  
+  #Useful lables
   labs(      
-      title = "Price distribution in room types",
-      subtitle="Density plot for prices in different room types",
-      x = "price per night (log)",
-      y = "density") + 
+      title = "Prices by room type",
+      x = "Price per night (log)",
+      y = "Density") + 
       theme_classic() + 
-  guides(fill=guide_legend(title="Room types"))+
-  facet_wrap(~room_type, ncol = 1) + 
+  
+  #Title of Legend
+  guides(fill=F)+ 
+  
+  #Plotting a vertical line at the median
+  geom_vline(xintercept = median(log(listings2$price)), colour = "#001e62")+
   NULL
-
 
 ```
 Interestingly although entire homes or apartments are the most expensive in terms of median, we see that some hotels are also extremely expensive.
 
+We also see that these distributions are multimodal - i.e. prices are clustered around specific levels. 
+
 
 
 ### Property Type
+
+
+Let us look into the statistics first:
+
+
+```{r}
+#Analyse the distribution of price of listings depends on the rating score
+favstats(price~room_type,data=listings2)
+```
+
+There seems to be a very strong relationship between property type and price. Lets plot the medians again:
 
 ```{r}
 #Calculate the median price of different room types
@@ -832,79 +1098,309 @@ median_per_prop <- listings2 %>%
 ggplot(median_per_prop,
        aes(x = reorder(prop_type_simplified, median_price),
            y= median_price)) +
+  
+  #Column type
   geom_col(fill = "skyblue") +
+  
+  #Useful labels
   labs(
     title = "Median price by property type",
     x="Room Type",
     y="Median Price"
     ) +
+  
+  #Flipping for aesthetics
   coord_flip() +
+  
+  #Simple theme
   theme_bw() +
   NULL
 ```
 
-### Avaialability next 30 days
+This is super useful but let's also take a look at the distribution: 
 
 ```{r}
+#Density Plot
+ggplot(listings2,
+       aes(x=log(price), 
+           y = prop_type_simplified, 
+           fill = prop_type_simplified))+
+  
+  #Density Ridges Plit
+  geom_density_ridges(alpha=0.3) +    
+  
+  #Useful lables
+  labs(      
+      title = "Prices by property type",
+      x = "Price per night (log)",
+      y = "Density") + 
+      theme_classic() + 
+  
+  #Title of Legend
+  guides(fill=F)+ 
+  
+  #Plotting a vertical line at the median
+  geom_vline(xintercept = median(log(listings2$price)), colour = "#001e62")+
+  NULL
+
+```
+There is a very distinct pattern between property types and this will likely be a useful regressor for our analysis. 
+
+### Avaialability next 30 days
+
+Let's also look at availability next 30 days which we hypothesize will be an indicator of popularity. 
+
+```{r}
+
+#Summarizing median price by availability
 listings_availability<-listings2 %>% 
   group_by(availability_30) %>% 
   summarize(price=median(price))
 
-
+#Plotting scatterplot of availability 
 ggplot(listings_availability, 
        aes(x = availability_30,
            y= log(price))) +
+  
+  #Points in red
   geom_point(color="red") +
-  labs(title = "Median Price Per Night versus Availability",
+  
+  #Useful Labels
+  labs(title = "Log Price Per Night versus Availability",
     x="Availability next 30 days",
     y="Log Price"
     ) +
+  
+  #Adding a trendline
   geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Simplified theme
   theme_bw() +
   NULL
 ```
-Interestingly the more availability the higher the price indicating that more premium rooms are booked less often or are less often fully booked. 
+Interestingly, the more availability the higher the price indicating that more premium rooms are booked less often or are less often fully booked. 
+
+This goes against our initial thought that less availability would be popular rooms and therefore more expensive! Good that we looked into this. 
 
 
 ### Instant Bookable
 
-Last but nost least we will look at whether or not units are instantly bookable
+Let's also look at whether or not units are instantly bookable
+
+```{r}
+#Analyse the distribution of price of listings depends on the rating score
+favstats(price~instant_bookable,data=listings2)
+```
+
+Instant bookable seems to be slightly higher distributed. Let's take a look at the graph:
 
 ```{r}
 
+#Boxplotting instant bookable vs log prices
 ggplot(listings2,aes(x=instant_bookable,y=log(price)))+
+  
+  #Boxplot format
   geom_boxplot(fill="wheat2")+
-  labs(title = "Distribution of whether or not units are instantly bookable",
+  
+  #Useful labels
+  labs(title = "Distribution of prices depending on whether or not units are instantly bookable",
     x="Instantly Bookable",
     y="Log Price"
     )+
+  
+  #Simople Theme
   theme_bw()
 
 ```
-There seems to be little to no difference between whether or not the units are bookable 
+There seems to be little to no difference between whether or not the units are bookable, however, we will still look further into this in the regression.
 
+
+### Host Since
+
+
+Let's also look at when they have been host since:
+
+```{r}
+
+#Plotting scatterplot of availability 
+ggplot(listings2, 
+       aes(x = host_since,
+           y= log(price))) +
+  
+  #Points in red
+  geom_point(color="red", alpha = 0.2) +
+  
+  #Useful Labels
+  labs(title = "Log price per night versus how long the host has been active on Airbnb",
+    x="Host since (date)",
+    y="Log Price"
+    ) +
+  
+  #Adding a trendline
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Simplified theme
+  theme_bw() +
+  NULL
+```
+
+
+There seems to be little to no relationship here and we will likely not need to consider it going forward. 
+
+Let's check across categoris
+
+
+```{r}
+
+#Plotting scatterplot of availability 
+ggplot(listings2, 
+       aes(x = host_since,
+           y= log(price), 
+           color = prop_type_simplified)) +
+  
+  #Points in red
+  geom_point(alpha = 0.5) +
+  
+  #Useful Labels
+  labs(title = "Log price per night versus how long the host has been active on Airbnb",
+    x="Host since (date)",
+    y="Log Price"
+    ) +
+  
+  #Adding a trendline
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Simplified theme
+  theme_bw() +
+  
+  facet_wrap(~prop_type_simplified, scales = "free") + 
+  
+  guides(color = F) + 
+  
+  NULL
+```
+
+This seems to hold true across a variety of categories and we will not considerit going forward. 
+
+
+### Last Review
+
+
+Let's also look at whether last review date hast an impact
+
+```{r}
+
+#Plotting scatterplot of availability 
+ggplot(listings2, 
+       aes(x = last_review,
+           y= log(price))) +
+  
+  #Points in red
+  geom_point(color="red", alpha = 0.2) +
+  
+  #Useful Labels
+  labs(title = "Log price per night versus when the last review was",
+    x="Last Review (date)",
+    y="Log Price"
+    ) +
+  
+  #Adding a trendline
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  #Simplified theme
+  theme_bw() +
+  NULL
+```
+
+Here we see a slight relationship and newer properties with newer reviews are higher priced. 
+
+We also not that there has been some properties that have not been reviewed since what looks like the covid outbreak. W
+
+We will plt the density for reference
+
+```{r}
+
+#Plotting scatterplot of availability 
+ggplot(listings2, 
+       aes(x = last_review)) + 
+  
+  geom_density(fill = "blue", alpha = 0.2) + 
+  
+  #Useful Labels
+  labs(title = "Distributions of last reviews",
+    x="Last Review (date)",
+    ) +
+
+  #Simplified theme
+  theme_bw() +
+  NULL
+```
+
+It seems that some properties have not had reviews since Covid. This is an interesting perspective but we will still be including them in our sample. 
+
+
+```{r}
+
+#Plotting scatterplot of availability 
+ggplot(listings2, 
+       aes(x = last_review,
+           y= log(price), 
+           color = prop_type_simplified)) +
+  
+  #Points in red
+  geom_point(alpha = 0.5) +
+  
+  #Useful Labels
+  labs(title = "Log price per night versus when the last review was",
+    x="Last Review (date)",
+    y="Log Price"
+    ) +
+  
+  #Adding a trendline
+  geom_smooth(method=lm,colour="black",alpha=0)+
+  
+  facet_wrap(~prop_type_simplified, scales = "free", ncol = 3) + 
+  
+  #Simplified theme
+  theme_bw() +
+  
+  guides(color =F) + 
+  NULL
+```
+We see that this relationship holds across a variety of properties. 
 
 ### Paired relationship overview
 We plotted a GG pairs plot to get a comprehensive overview of the relationship between the price of listings and the selected variables. 
 
-```{r}
-##Problem: 1. what variables to choose? 2.Do we need further explanation for this part?
-
-#DME Comment - i think we should do a bunch to all
-```
+We only plot the numerical variables where we can get a correlation and scatterplot of the relationship
 
 
 ```{r}
 #Relatonship between the price and variables, starting with numerical variables
 listings2 %>% 
-  select(price,accommodates, review_scores_rating, number_of_reviews, minimum_nights, reviews_per_month, bedrooms, beds, availability_30) %>% 
+  
+  #Choosing our variables
+  select(price, #Variable we are trying to explain
+         accommodates, 
+         review_scores_rating, 
+         number_of_reviews, 
+         minimum_nights, 
+         reviews_per_month, 
+         bedrooms, 
+         beds, 
+         availability_30,
+         last_review) %>% 
+  
+  #Size and aesthetics
   ggpairs(aes(alpha=0.2))+
   theme_minimal(base_size=8)
 
 ```
-From the above we see that for price the most correlated variables is the number of accomodates or bedrooms (although these are  correlated with 0.73 and will likely not both be included). However, from here it seems that oerhaps it is better to focus on accommodates rather than bedrooms. 
+From the above we see that for price the most correlated variables is the number of accomodates or bedrooms (although these are  correlated with 0.73 and will likely not both be included). However, from here it seems that perhaps it is better to focus on accommodates rather than bedrooms. 
 
-Unfortunately, GGPairs does not work well with categorical variables and we will use that data we extracted above as an indicator for whether or not these variables will be useful going forward
+It is worth noting that some of the less correlated variables seem to be review scores, number of reviews, however, we will still try and test these in our regression. 
+
+Unfortunately, GGPairs does not work well with categorical variables and we will use that data we extracted above as an indicator for whether or not these variables will be useful going forward.
 `
 
 # Regression Analysis
@@ -914,7 +1410,9 @@ We first create a new variable called `price_4_nights` that uses `price`, and `a
 
 We assume that this leaves us with Airbnbs accommodating 2 or more people. I.e. we filter out Airbnb's which accomodate 1 person. 
 
-Also, we assume that no other people would go to the airbnb lowering the cost per person (i.e. 2 people could rent a 10 people Airbnb but would be the only two to pay)
+Also, we assume that no other people would go to the airbnb lowering the cost per person (i.e. 2 people could rent a 10 people Airbnb but would be the only two to pay).
+
+Lets create the cost for two people and filter for the apartments that have 2 people min:
 
 ```{r}
 ##Fist, we have to filter the data to represent 2 people staying for 4 nights.
@@ -924,32 +1422,46 @@ listings_4 <- listings2 %>%
 
 ```
 
-We take logarithm of ’price_4_nights‘ and create the density plot, because it looks more like the normal distribution
-
-```{r}
-#Unvertain answer: Use histograms or density plots to examine the distributions of `price_4_nights` and `log(price_4_nights)`. Which variable should you use for the regression model? Why?
-```
-
+We take logarithm of ’price_4_nights‘ and create the density plot, because it looks more like the normal distribution. See below:
 
 ```{r}
 # Plot density of price using price_4_nights
+
+#Using price 4 nights without log
 ggplot(listings_4,aes(x=price_4_nights))+
-  geom_density() +    
+  
+  #In a density plot
+  geom_density() +   
+  
+  #Useful labels
   labs(      
       title = "Density plot for prices for 4 nights",
       x = "price per night (log)",
-      y = "density") + 
+      y = "Density") + 
+  
+  #Simple Theme
       theme_classic() + 
+  
     NULL
+
+
+
 
 # Plot density of price using log(price_4_nights)
 ggplot(listings_4,aes(x=log(price_4_nights)))+
-  geom_density() +    
+  
+  #In density Plot
+  geom_density() +   
+  
+  #usfeul Labs
   labs(      
       title = "Density plot for prices for 4 nights",
       x = "price per night (log)",
-      y = "density") + 
+      y = "Density") + 
+  
+  #Sumple Theme
       theme_classic() + 
+  
     NULL
 ```
 
@@ -957,25 +1469,46 @@ We see that taking the log of prices brings us much closer to a normal distribut
 
 
 ## Model1: property type, number of reviews and the rating scores
+
 We first fit a regression model with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
 
-
-First, let us split the data into a training and testing set. The training will be used for the models
+First, let us split the data into a training and testing set. The training will be used for the models and the testing later on:
 
 
 ```{r}
+
+#Set seed for regeneration purposes
 set.seed(123456)
 
+
+#Splitting 75% into a training set
 train_test_split <- initial_split(listings_4, prop = 0.75)
+
+#New variable name for training set
 listings_train <- training(train_test_split)
+
+#New Variable name for test set 
 listings_test <- testing(train_test_split)
 ```
 
 
+
+Lets now create the model:
+
 ```{r}
 
 #Create the model1
-model1 <- lm(log(price_4_nights) ~ prop_type_simplified +number_of_reviews +review_scores_rating ,data=listings_train)
+model1 <- lm(log(price_4_nights) ~ #Predicted Variable
+               
+               #Explanatory Variables
+               prop_type_simplified +
+               number_of_reviews +
+               review_scores_rating,
+             
+             #Dataset
+             data=listings_train)
+
+#Summary of Model 1
 summary(model1)
 
 ```
@@ -983,9 +1516,7 @@ summary(model1)
 
 We come to an adjusted R squared of 0.169 which is a good start. We see that all variables have significant t-values indicating they are significantly different from 0. 
 
-Also, We see that some room types (such as entire residential home or townhouse willa dd to the price and other and private room will lower the price)
-
-More specifically these values changes as units changed compared to the unit left out ()
+More specifically these values changes as the category changes from entire rental unit (the variable excluded)
 
 - Entire residential home increases log of price 0.2 
 - Entire Townhouse increases log of price 0.28
@@ -994,69 +1525,152 @@ More specifically these values changes as units changed compared to the unit lef
 
 These numbers are compared to if the unit is entire rental Unit which is the variable excluded (Categorical Variables exclude one variable)
 
-
-
-These variables are compared to whether or not the unit is 
-
-
 For review scores rating we see that as rating goes up 1 unit log of price goes up 0.019. 
 
 However, as number of reviews goes up price goes down. For every 100 additional reviews price falls roughly 0.05 (Likely because those properties are less premium).
+
+
+We recall from earlier that reviews should account for room type which is included now:  
 
 
 ## Room Type
 Now lets add the room type
 
 ```{r}
-#Create the model1
-model2 <- lm(log(price_4_nights) ~ prop_type_simplified +number_of_reviews +review_scores_rating + room_type ,data=listings_train)
-summary(model2)
-```
-Our model now explains slightly more butsome variables are no longer significant.
 
-Specificallywe see that hotel rooms, private rooms and shared rooms all lower the price compared to entire home/apt. 
+#Create the model2
+model2 <- lm(log(price_4_nights) ~ #Predicted Variable
+               
+               #Explanatory Variables
+               prop_type_simplified +
+               number_of_reviews +
+               review_scores_rating + 
+               room_type,
+             
+             #Dataset
+             data=listings_train)
+
+#Summary of Model 2
+summary(model2)
+
+```
+
+
+We see that hotel rooms, private rooms and shared rooms all lower the price compared to entire home/apt. 
+
+- Hotels lower log price -0.25
+- Private rooms lower log price -0.56
+- Shared rooms lower log price -0.61
+
+Our model has higher Adjusted Rsquared but some variables are no longer significant.
 
 Lets now test for VIF given our model has some p-value issues:
 
 ```{r}
 car::vif(model2)
 ```
-Let's keep the variables in 
+Let's keep the variables in given they are below 5 but there is some overlap between property type and room type. 
+
+We may have to account for this later on. 
 
 
 
 ## Model 3: Bedrooms, beds and accomodates
 We want to further determine whether the number of`bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`.
+Lets add it to our model.
 
-WE surprisingly see that VIF is not too high between beds, bedrooms, and accomodates so we keep them in for now. We will now include beds, because it is insignificant. 
-
-We do see that these factors explain quite well the price changes and has an Rsquare of 0.2818. Lets add it to our model
-
-```{r}
-
-
-model3_1 <- lm(log(price_4_nights) ~ prop_type_simplified+number_of_reviews+review_scores_rating + beds +  room_type+bedrooms + accommodates, data = listings_4)
-
-```
+We keep in mind that these might be correlated and will test VIF after.
 
 ```{r}
+
+#New model
+model3_1 <- lm(
+  
+  #Predicted Variable
+  log(price_4_nights) ~ 
+                 
+    
+                #Explanatory Variables
+                 prop_type_simplified+
+                 number_of_reviews+
+                 review_scores_rating +
+                 room_type + 
+                 beds +  
+                 bedrooms + 
+                 accommodates, 
+               
+            #dataset
+               data = listings_train)
+
 summary(model3_1)
+
 ```
-Once again we get a higher R Square but some of these variables are no longer significant. 
+
+We notice that beds are not significant and will take that out. 
+
+```{r}
+
+#New model
+model3_2 <- lm(
+  
+  #Predicted Variable
+  log(price_4_nights) ~ 
+                 
+    
+                #Explanatory Variables
+                 prop_type_simplified+
+                 number_of_reviews+
+                 review_scores_rating +
+                 room_type + 
+                 bedrooms + 
+                 accommodates, 
+               
+            #dataset
+               data = listings_train)
+
+summary(model3_2)
+
+```
+
+We also notice that some variables are no longer significant.
 
 Let's check VIF
 
 ```{r}
-vif(model3_1)
+vif(model3_2)
 ```
 WE now see quite a high variance inflation factor for Prop_type_simplified, and Room Type. This makes sense as the room type (i.e. hotel room) is related to property type (i.e. a hotel)
 
 Let's try and run and see each model without one another. 
 
 ```{r}
-###
-model3_3 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates, data = listings_4)
-model3_4 <- lm(log(price_4_nights) ~ prop_type_simplified+number_of_reviews+review_scores_rating + bedrooms + accommodates, data = listings_4)
+#Same model but without Property Type
+model3_3 <- lm(
+  
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews+
+    review_scores_rating + 
+    room_type+
+    bedrooms + 
+    accommodates, 
+  
+  data = listings_train)
+
+#Same model but without Room Type
+model3_4 <- lm(
+  
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    prop_type_simplified+
+    number_of_reviews+
+    review_scores_rating + 
+    bedrooms + 
+    accommodates, 
+  
+  data = listings_train)
 
 vif(model3_3)
 vif(model3_4)
@@ -1072,66 +1686,132 @@ Now let's try and decide which model is stronger going forward.
 summary(model3_3)
 summary(model3_4)
 ```
-We see that model 3_3 (room type) provides better explanatory power than 3_4 (property type), and will utilize that going forward. 
+We see that model 3_2 (incl. room type) provides better explanatory power than 3_3 (incl. property type), and will utilize that going forward. 
+
+This model has an adjusted r square of 37.6% and adds variables beds, bedrooms and accommodates. 
+
+- Each Bedroom adds 0.118 to the log price
+- Each Accommodates increase adds 0.126 to the log price. 
 
 
 ### Model4: Superhosts
 We want to explore whether the superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables. 
 
-First let us look at superhosts on a standalone basis 
-
-```{r}
-model4_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost, data = listings_4)
-summary(model4_1)
-
-```
-
-The variable is significant however, it only has very little explanatory power. Let's try and compute the VIF once again to check out model
-
-
-> DME comment, i am uncertain when we should take out non-significant variables and when to run the test (splitting the data)
-
+Let us build this model on model 3.2
 
 
 ```{r}
-vif(model4_1)
+#Model 3.2 incl. superhost 
+model4 <- lm(
+  
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews+
+    review_scores_rating + 
+    room_type+
+    bedrooms + 
+    accommodates+ 
+    host_is_superhost, 
+  
+  data = listings_train)
+
+summary(model4)
+
 ```
+
+The variable is significant however, it only has very little explanatory power. 
+
+A superhost adds 0.123 to the log price. 
+
+
+Let's try and compute the VIF once again to check out model
+
+
+```{r}
+vif(model4)
+```
+
 We see that VIF is below 5 for all variables meaning the variables do not have too high correlation
 
 ### Model 5, Immidiate bookings
 
-1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
+1. Some hosts allow you to immediately book their listing. Let's see if affter controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`
 
 ```{r}
-model5_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable, data = listings_4)
-summary(model5_1)
+#Model 4.0 incl. immidiate bookings 
+model5 <- lm(
+  
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews+
+    review_scores_rating + 
+    room_type+
+    bedrooms + 
+    accommodates+ 
+    host_is_superhost+ 
+    instant_bookable, 
+  
+  data = listings_train)
+
+summary(model5)
 
 ```
 
-Here we see instant bookable is a significant predictor which will can be used in our model. 
+Here we see instant bookable is a significant predictor which will can be used in our model.
+
+If a hotel is instantly bookable log price goes up by 0.055
 
 We once again control VIF
 ```{r}
-vif(model5_1)
-
+vif(model5)
 ```
 Still these factors are not correlated enough for us to be worried. 
 
 
 ### Neighboughoods 
 
-For this section we have not chosen the neighbourhood_overview variables as it had a lot of NAs. 
+For this section we have not chosen the neighbourhood_overview variables as it had a lot of NAs. We use the categories we set up earlier which split neighbourhoods into the most costly and least costly area. 
+
+We therefore expect it to have high explanatory power.
+
 
 ```{r}
-model6_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed, data = listings_4)
-summary(model6_1)
+#Model 5 + neighbourhoods
+model6 <- lm(
+  
+  #Variable to predict
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews +
+    review_scores_rating + 
+    room_type +
+    bedrooms + 
+    accommodates + 
+    host_is_superhost + 
+    instant_bookable + 
+    neighbourhood_cleansed, 
+  
+  #Dataset
+  data = listings_train)
+
+summary(model6)
 ```
 
-We see that neighbourgood categorization is a really impactful driver on our prices. 
+We see that neighbourgood categorization is a really impactful driver on our prices as our adjusted r square went to ca. 44%. 
+
+We see that compared to the bottom 7 neighbourhoods the prices are impacted as such:
+
+- Top 5 areas add 0.366 to log prices
+- Top 6-10 areas add 0.227 to log prices
+- Top 11-15 areas add 0.086 to prices
 
 Testing VIF
+
 ```{r}
-vif(model6_1)
+vif(model6)
 ```
 Still VIF looks fine.
 
@@ -1141,14 +1821,35 @@ Still VIF looks fine.
 Next lets look at availability in the coming 30 days
 
 ```{r}
-model7_1 <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30, data = listings_4)
-summary(model7_1)
+#Model 6 + 30 day availability
+model7 <- lm(
+  
+  #Variable to predict
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews +
+    review_scores_rating + 
+    room_type +
+    bedrooms + 
+    accommodates + 
+    host_is_superhost + 
+    instant_bookable + 
+    neighbourhood_cleansed+ 
+    availability_30, 
+  
+  #Dataset
+  data = listings_train)
+
+summary(model7)
 ```
 
-Once again, this variable is a significant explanatory variable. Let's test for VIF once again:
+Once again, this variable is a significant explanatory variable. As availability over the next 30 days goes up with 1 log prices increase by 0.014
+
+Let's test for VIF once again:
 
 ```{r}
-vif(model7_1)
+vif(model7)
 ```
 
 All VIFS are low and therefore we make no changes.
@@ -1156,30 +1857,80 @@ All VIFS are low and therefore we make no changes.
 ### License
 
 ```{r}
-model_final <- lm(log(price_4_nights) ~ number_of_reviews+review_scores_rating + room_type+bedrooms + accommodates + host_is_superhost + instant_bookable + neighbourhood_cleansed + availability_30 + license, data = listings_4)
-summary(model_final)
+#Model 7 + License
+model8 <- lm(
+  
+  #Variable to predict
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews +
+    review_scores_rating + 
+    room_type +
+    bedrooms + 
+    accommodates + 
+    host_is_superhost + 
+    instant_bookable + 
+    neighbourhood_cleansed+ 
+    availability_30 + 
+    license, 
+  
+  #Dataset
+  data = listings_train)
+
+summary(model8)
 ```
 
 
-License is indeed a significant predictor of price
+License is not a significant predictor of price when controlling for remaining variables. Let's go to the next variable
+
+
+### Last Review
 
 ```{r}
-vif(model_final)
+#Model 7 + Last Review
+model_final <- lm(
+  
+  #Variable to predict
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews +
+    review_scores_rating + 
+    room_type +
+    bedrooms + 
+    accommodates + 
+    host_is_superhost + 
+    instant_bookable + 
+    neighbourhood_cleansed+ 
+    availability_30 + 
+    last_review, 
+  
+  #Dataset
+  data = listings_train)
+
+summary(model_final)
 ```
-
-
+Last review is a significant predicotr of price and for each day of more recent reviews the prices are 0.00007 higher. 
 
 
 ## Diagnostics, collinearity, summary tables
 
-Final VIF
+
+### VIF
+
+Let's check the VIF for our final model
 
 ```{r}
 vif(model_final)
 ```
 
 
-Variance inflation factor is below 5 for all variables. 
+Variance inflation factor is below 5 for all variables which shows no sign of autocorrelation.
+
+### Residual values and normal distribution
+
+Let's also plot the model using the autoplot to check for potential issues: 
 
 ```{r}
 autoplot(model_final)
@@ -1188,27 +1939,32 @@ For our model we see that resudual errors are evenly distributed and do not chan
 
 Futhermore we see from the theoretical quantiles that our model is approximately evenly distributed but not 100% evenly distributed. 
 
-As you keep building your models, it makes sense to:
 
 
+### Summary Huxtable
 
-1. Create a summary table, using `huxtable` (https://mfa2022.netlify.app/example/modelling_side_by_side_tables/) that shows which models you worked on, which predictors are significant, the adjusted $R^2$, and the Residual Standard Error.
-
-
-
-
-Given the above, it seems both beds and license can be removed without any material effect. 
-
-Final Table
+Let's summarize our models in a table
 
 
 ```{r}
-huxreg(list("Prop Type, Reviews, Rating" = model1, "+ Room Type" = model2, "+ Beds + Bedrooms + Accom." = model3_1, "- Prop Type" = model3_3, " - Room Type + Prop Type"  = model3_4, "+ Superhost" = model4_1, "+ immidiate bookings" = model5_1, "+ Neighbourhoods" = model6_1, "+ Availability" = model7_1, "+ License (Final)" = model_final))
+huxreg(list(
+  "Prop Type, Reviews, Rating" = model1, 
+  "+ Room Type" = model2, 
+  "+ Beds + Bedrooms + Accom." = model3_1, 
+  "- Beds" = model3_2, 
+  "- Prop Type" = model3_3, 
+  " - Room Type + Prop Type"  = model3_4, 
+  "+ Superhost" = model4, 
+  "+ immidiate bookings" = model5, 
+  "+ Neighbourhoods" = model6, 
+  "+ Availability" = model7, 
+  "+ license" = model8, 
+  "+ last_review (Final)" = model_final))
 
 ```
 
 
-
+Our final model has an r-squared of 0.494 and excludes the license categorical variable (Y/N), beds (numerical), and property type. 
 
 ### Overfitting test
 
@@ -1216,34 +1972,104 @@ We now test our model for overfitting
 
 ```{r}
 
+#To get the RMSE from the training set
 rmse_train <- listings_train %>% 
+  
+  #Calculating RMSE
   mutate(predictions = predict(model_final, .)) %>% 
   summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  
+  #Printing RMSE
   pull()
 rmse_train
 
 
+#Repeated for test set
 rmse_test <- listings_test %>% 
+  
+  #Calcualating RMSE
     mutate(predictions = predict(model_final, .)) %>% 
   summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  
+  #Printing RMSE
   pull()
 rmse_test
 
 
 ```
 
-We see that the model is still closely predicting the same for the test set and training set. 
+There seems to be some overfitting in our model. Let's see if we can adjust the final model by taking out some of the less key variables
+
+```{r}
+#Model final adjusted without instant_bookable and without last review:
+model_final_2 <- lm(
+  
+  #Variable to predict
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews +
+    review_scores_rating + 
+    room_type +
+    bedrooms + 
+    accommodates + 
+    host_is_superhost + 
+    neighbourhood_cleansed+ 
+    availability_30, 
+
+  #Dataset
+  data = listings_train)
+
+summary(model_final_2)
+```
+
+We still keep quite a high explanatory power of 0.487% so let's see again the RMSE
+
+
+```{r}
+
+#To get the RMSE from the training set
+rmse_train <- listings_train %>% 
+  
+  #Calculating RMSE
+  mutate(predictions = predict(model_final_2, .)) %>% 
+  summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  
+  #Printing RMSE
+  pull()
+rmse_train
+
+
+#Repeated for test set
+rmse_test <- listings_test %>% 
+  
+  #Calcualating RMSE
+    mutate(predictions = predict(model_final_2, .)) %>% 
+  summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  
+  #Printing RMSE
+  pull()
+rmse_test
+
+
+```
+
+We managed to lower RMSE by 0.05 by removing these variables while still keeping the RMSE low in our model. 
+
+Let's print the two final models
+
+```{r}
+huxreg(list(
+  "Prev Model" = model_final, 
+  "- instant bookable - last_review" = model_final_2))
+
+```
 
 
 
+### Model test on Airbnb's
 
-
-
-
-
-1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
-  - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
-
+We will now try to use our model to predict prices for staying for 4 nights, in a private room, with at least 10 reviews, and reviews above 4.5 
 
 
 First let us define our target segment
@@ -1252,16 +2078,27 @@ First let us define our target segment
 
 ```{r}
 
-#Add another filter for average rating of at least 90
 
+#Utilizing the full dataset
 targets <- listings_4 %>% 
+  
+  #BY Private Room
   filter(room_type == "Private room", 
+         
+         #At least 10 reviews
          number_of_reviews >= 10, 
-         review_scores_rating >= 4.5) %>% 
+         
+         #A score above 4.5
+         review_scores_rating >= 4.5) %>%
+  
+  #Predicted values in log
   mutate(log_predicted_values = predict(model_final, .),
+         
+         #Predicted Values Nominal
          predicted_price = exp(log_predicted_values)) 
 
 
+#Summarizing statistics
 targets_test <- targets %>% 
   
   summarise(
@@ -1292,8 +2129,8 @@ skim(targets$predicted_price)
 ```
 
 
-The point prediction is the mean equivalent of a price for 2 people for 4 nights of 379.38  
-The confindence interval for the mean payment of 2 people spending 4 nights is 373-384 $. 
+The point prediction is the mean equivalent of a price for 2 people for 4 nights of 381.25  
+The confindence interval for the mean payment of 2 people spending 4 nights is 375-386 $. 
 
 
 
@@ -1324,16 +2161,18 @@ The confindence interval for the mean payment of 2 people spending 4 nights is 3
 
 
 
-
+> Below is old code that could like be moved up in EDA part. 
 
 
 ```{r}
 ##Is the price of private room significantly lower?
 listings_private<-listings_4 %>% 
-  mutate(is_private_room = ifelse(property_type=="Private room in rental unit", "yes","no")) #creating categories
+  mutate(is_private_room = ifelse(prop_type_simplified=="Private room in rental unit", "yes","no")) #creating categories
 
 t.test(price ~ is_private_room, data = listings_private)
 ```
+
+
 The t-value is way above 2 ant the p value is lower than 10^(-5). We can conclude that  private rooms seem to have a lower renting price. 
 ```{r}
 
