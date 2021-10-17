@@ -2077,7 +2077,9 @@ rmse_train <- listings_train %>%
   
   #Calculating RMSE
   mutate(predictions = predict(model_final, .)) %>% 
-  summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  select(predictions,price_4_nights) %>% 
+  mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
+  summarise(rmse = sqrt(mean(squared_error))) %>% 
   
   #Printing RMSE
   pull()
@@ -2087,9 +2089,11 @@ rmse_train
 #Repeated for test set
 rmse_test <- listings_test %>% 
   
-  #Calcualating RMSE
-    mutate(predictions = predict(model_final, .)) %>% 
-  summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  #Calculating RMSE
+  mutate(predictions = predict(model_final, .)) %>% 
+  select(predictions,price_4_nights) %>% 
+  mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
+  summarise(rmse = sqrt(mean(squared_error))) %>% 
   
   #Printing RMSE
   pull()
@@ -2098,7 +2102,9 @@ rmse_test
 
 ```
 
-There seems to be some overfitting in our model. Let's see if we can adjust the final model by taking out some of the less key variables
+There seems to be no overfitting in our model. Let's see if we can adjust the final model by taking out some of the less key variables without loosing explanatory power.
+
+## Adjusting final model for unneccessary variables
 
 ```{r}
 #Model final adjusted without instant_bookable and without last review:
@@ -2133,7 +2139,9 @@ rmse_train <- listings_train %>%
   
   #Calculating RMSE
   mutate(predictions = predict(model_final_2, .)) %>% 
-  summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  select(predictions,price_4_nights) %>% 
+  mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
+  summarise(rmse = sqrt(mean(squared_error))) %>% 
   
   #Printing RMSE
   pull()
@@ -2143,9 +2151,11 @@ rmse_train
 #Repeated for test set
 rmse_test <- listings_test %>% 
   
-  #Calcualating RMSE
-    mutate(predictions = predict(model_final_2, .)) %>% 
-  summarise(sqrt(sum(predictions - log(price_4_nights))**2/n())) %>% 
+  #Calculating RMSE
+  mutate(predictions = predict(model_final_2, .)) %>% 
+  select(predictions,price_4_nights) %>% 
+  mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
+  summarise(rmse = sqrt(mean(squared_error))) %>% 
   
   #Printing RMSE
   pull()
@@ -2154,7 +2164,7 @@ rmse_test
 
 ```
 
-We managed to lower RMSE by 0.05 by removing these variables while still keeping the RMSE low in our model. 
+Our RMSE is still low
 
 ## Final Model
 
