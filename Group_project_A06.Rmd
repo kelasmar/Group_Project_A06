@@ -179,47 +179,6 @@ leaflet(data = filter(listings, minimum_nights <= 4)) %>%
                    label = ~property_type)
 ```
 
-    
-# Regression Analysis
-
-For the target variable $Y$, we will use the cost for two people to stay at an Airbnb location for four (4) nights. 
-
-Create a new variable called `price_4_nights` that uses `price`, and `accomodates` to calculate the total cost for two people to stay at the Airbnb property for 4 nights. This is the variable $Y$ we want to explain.
-
-Use histograms or density plots to examine the distributions of `price_4_nights` and `log(price_4_nights)`. Which variable should you use for the regression model? Why?
-
-Fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
-
-- Interpret the coefficient `review_scores_rating` in terms of `price_4_nights`.
-- Interpret the coefficient of `prop_type_simplified` in terms of `price_4_nights`.
-
-We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
-
-
-
-## Further variables/questions to explore on our own
-
-Our dataset has many more variables, so here are some ideas on how you can extend your analysis
-
-1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
-1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
-1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
-1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
-1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
-
-
-## Diagnostics, collinearity, summary tables
-
-As you keep building your models, it makes sense to:
-
-1. Check the residuals, using `autoplot(model_x)`
-1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
-
-
-
-1. Create a summary table, using `huxtable` (https://mfa2022.netlify.app/example/modelling_side_by_side_tables/) that shows which models you worked on, which predictors are significant, the adjusted $R^2$, and the Residual Standard Error.
-1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
-  - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
 
 
 # Deliverables
@@ -263,7 +222,7 @@ knitr::include_graphics(here::here("images", "rubric.png"), error = FALSE)
 ```{r}
 # Relation between variables
 listings2 <- listings %>% 
-  select(c("host_since", "host_is_superhost", "neighbourhood_cleansed", "property_type", "room_type", "accommodates","price", "review_scores_rating", "number_of_reviews", "reviews_per_month","bedrooms","availability_30","last_review","license"))
+  select(c("host_since", "host_is_superhost", "neighbourhood_cleansed", "property_type", "room_type", "accommodates","price","review_scores_rating", "number_of_reviews", "reviews_per_month","bedrooms","availability_30","last_review","license","instant_bookable"))
 
 listings2 <- listings2 %>% 
   mutate(price = parse_number(price))
@@ -271,7 +230,6 @@ listings2 <- listings2 %>%
 listings2<-listings2 %>% 
   mutate(license = ifelse(is.na(license), "no","yes"))
 
-skim(listings)
 ```
 ```{r}
 #Looking at the raw values.
@@ -315,7 +273,8 @@ listings %>%
 
 ```{r}
 
-favstats(price~neighbourhood_cleansed,data=listings2)
+favstats(price~neighbourhood_cleansed,data=listings2) %>% 
+  arrange(desc(n))
 ## First, we skimmed the neighbourhood cleansed data to analyse the distribution of price of listings depends on neighbourhood. From the table below,  we found out that median price will better suits the purpose of our research than the mean price because the distribution of price of each neighbourhood is greaatly skewed with extreme outliers. For example, Centrum-West neighbourhood has a mean price of USD186 while the most expensive property costs USD8000, causing a large standard deviation of USD231. Hence, standard deviation is unusually large among neighbourhood
 ```
 
@@ -325,18 +284,18 @@ main_neighbourhood <-favstats(price~neighbourhood_cleansed,data=listings2) %>%
   filter(n>=1000) %>% 
   arrange(desc(n))
 
-c=main_neighbourhood$neighbourhood_cleansed
+top_neighbourhood=main_neighbourhood$neighbourhood_cleansed
 
 listings_neigh<-listings2 %>% 
   group_by(neighbourhood_cleansed) %>% 
-  filter(neighbourhood_cleansed==c) %>% 
+  filter(neighbourhood_cleansed==top_neighbourhood) %>% 
   summarize(price=price)
 
 
 ggplot(listings_neigh,aes(x=log(price),fill = neighbourhood_cleansed))+
   geom_density(alpha=0.3) +    
   labs(      
-      title = "Density plot for prices on whether host is superhost",
+      title = "Density plot for prices in the most popular regions",
       x = "price per night (log)",
       y = "density") + 
       theme_classic() + 
@@ -475,10 +434,10 @@ ggplot(listing2_low_price,aes(x=license,y=price))+
 listings2.1 <- listings2 %>% 
   select(c("price","host_since", "host_is_superhost", "review_scores_rating", "number_of_reviews", "reviews_per_month","last_review"))
 
-listings2.2 <- listings %>% 
+listings2.2 <- listings2 %>% 
   select(c("price","neighbourhood_cleansed", "property_type", "room_type"))
          
-listings2.3 <- listings %>% 
+listings2.3 <- listings2 %>% 
   select(c("price","accommodates","bedrooms","availability_30"))
 
 
@@ -493,3 +452,237 @@ listings2.3 <- listings %>%
 ```{r}
 ## We plotted a GG pairs plot to get a comprehensive overview of the relationship between the price of listings and the selected variables. 
 ```
+
+# Regression Analysis
+
+For the target variable $Y$, we will use the cost for two people to stay at an Airbnb location for four (4) nights. 
+
+Create a new variable called `price_4_nights` that uses `price`, and `accomodates` to calculate the total cost for two people to stay at the Airbnb property for 4 nights. This is the variable $Y$ we want to explain.
+
+Use histograms or density plots to examine the distributions of `price_4_nights` and `log(price_4_nights)`. Which variable should you use for the regression model? Why?
+
+Fit a regression model called `model1` with the following explanatory variables: `prop_type_simplified`, `number_of_reviews`, and `review_scores_rating`. 
+
+- Interpret the coefficient `review_scores_rating` in terms of `price_4_nights`.
+- Interpret the coefficient of `prop_type_simplified` in terms of `price_4_nights`.
+
+We want to determine if `room_type` is a significant predictor of the cost for 4 nights, given everything else in the model. Fit a regression model called model2 that includes all of the explananatory variables in `model1` plus `room_type`. 
+
+```{r}
+##Fist, we have to filter the data to represent 2 people staying for 4 nights, including the cleaning fee.
+
+listings_4 <- listings2 %>% 
+  mutate(price_4_nights = price * 4)
+
+summary(listings_4)
+```
+
+```{r}
+
+# Plot density of log(price_4_nights)
+ggplot(listings_4,aes(x=log(price)))+
+  geom_density() +    
+  labs(      
+      title = "Density plot for prices for 4 nights",
+      x = "price per night (log)",
+      y = "density") + 
+      theme_classic() + 
+    NULL
+```
+
+```{r}
+
+# Determining the most common type of rooms
+listings_room<-favstats(price~property_type,data=listings_4) %>% 
+  filter(n>=200) %>% 
+  arrange(desc(n))
+
+top_rooms=listings_room$property_type ##extracting the top rooms
+
+listings_4_room<-listings2 %>% 
+  filter(property_type==top_rooms) %>% 
+  filter(accommodates>=2) %>% ##taking the rooms that fit more than 2 people
+  group_by(property_type) %>% 
+  summarize(price=price)
+
+# Plot density of log(price_4_nights) per room type
+ggplot(listings_4_room,aes(x=log(price),fill=property_type))+
+  geom_density(alpha=0.3) +    
+  labs(      
+      title = "Density plot for prices for 4 nights by property type",
+      x = "price per night (log)",
+      y = "density") + 
+      theme_classic() + 
+    NULL
+
+```
+```{r}
+##Is the price of private room significantly lower?
+listings_private<-listings_4 %>% 
+  mutate(is_private_room = ifelse(property_type=="Private room in rental unit", "yes","no")) #creating categories
+
+t.test(price_4_nights ~ is_private_room, data = listings_4_room)
+```
+The t-value is way above 2 ant the p value is lower than 10^(-5). We can conclude that  private rooms seem to have a lower renting price. 
+```{r}
+
+#Using above dataset for the confidence interval calculations
+formula_ci <- listings_4_room%>% 
+  
+  #Calculate weight's summary statistics for people exercising at least 3 times a week 
+  
+  # calculate mean, SD, count, SE, lower/upper 95% CI
+  summarise(
+    average_price=mean(price,na.rm=TRUE), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
+            
+    sd_price=sd(price,na.rm=TRUE), #Standard Deviation
+            
+    count= n(), #Observations
+           
+    t_critical = qt(0.975,count-1), #T-Critical at 95% Confidence Interval and these observations
+            
+    se_price=sd_price/sqrt(count), #Standard Error 
+           
+    margin_of_error= t_critical*se_price, #Margin of Error
+            
+    price_low= average_price - margin_of_error, #Lower interval
+            
+    price_high= average_price + margin_of_error) #Upper Interval 
+
+formula_ci
+
+ggplot(formula_ci, aes(x=average_price, y=property_type, color=property_type)) +
+
+#geom_errorbar function allows us to show the two bars with confidence intervals
+
+geom_errorbar(aes(xmin=price_low, xmax=price_high),width = 0.1, size=0.5)+ 
+  
+geom_point(aes(x=average_price),size=1)+
+
+  
+theme_bw() +
+  
+theme(legend.position = "none",axis.title.y=element_blank())+
+  
+  labs(title = "CI for average price per room type",
+       subtitle = "95% confidence intervals overlap",
+       x = "Average Price"
+       ) +
+  NULL
+```
+The property type seems to have a significant effect on prices. The length of the intervals mainly vary due to the differences in sample size. The most common property type (Entire rental unit) has a small interval because it has the larger sample. We can estimate quite aaccuratly the average price in this category.
+
+```{r}
+favstats(price_4_nights~host_is_superhost,data=listings_4)
+```
+```{r}
+t.test(price_4_nights ~ host_is_superhost, data = listings_4)
+```
+
+```{r}
+favstats(price_4_nights~accommodates,data=listings_4)
+```
+
+
+```{r}
+
+#Using above dataset for the confidence interval calculations
+formula_ci <- listings_4 %>% 
+  filter(accommodates<=8) %>% 
+  filter(accommodates>=1) %>% 
+  group_by(accommodates) %>% 
+  
+  #Calculate weight's summary statistics for people exercising at least 3 times a week 
+  
+  # calculate mean, SD, count, SE, lower/upper 95% CI
+  summarise(
+    average_price=mean(price,na.rm=TRUE), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
+            
+    sd_price=sd(price,na.rm=TRUE), #Standard Deviation
+            
+    count= n(), #Observations
+           
+    t_critical = qt(0.975,count-1), #T-Critical at 95% Confidence Interval and these observations
+            
+    se_price=sd_price/sqrt(count), #Standard Error 
+           
+    margin_of_error= t_critical*se_price, #Margin of Error
+            
+    price_low= average_price - margin_of_error, #Lower interval
+            
+    price_high= average_price + margin_of_error) #Upper Interval 
+
+formula_ci
+
+ggplot(formula_ci, aes(x=average_price, y=accommodates, color=accommodates)) +
+
+#geom_errorbar function allows us to show the two bars with confidence intervals
+
+geom_errorbar(aes(xmin=price_low, xmax=price_high),width = 0.1, size=0.5)+ 
+  
+geom_point(aes(x=average_price),size=1)+
+
+  
+theme_bw() +
+  
+theme(legend.position = "none",axis.title.y=element_blank())+
+  
+  labs(title = "CI for average price per room type",
+       subtitle = "95% confidence intervals overlap",
+       x = "Average Price"
+       ) +
+  NULL
+
+
+```
+
+```{r}
+t.test(price_4_nights ~ license, data = listings_4)
+```
+
+```{r}
+#higher price in De Pijp?
+
+listings_4_pijp<-listings_4 %>% 
+  mutate(is_in_pjip = ifelse(neighbourhood_cleansed=="De Pijp - Rivierenbuurt", "yes","no"))
+
+t.test(price_4_nights ~ is_in_pjip, data = listings_4_pijp)
+
+
+```
+```{r}
+
+listings_instant<-listings2 %>% 
+  select("price","instant_bookable")
+
+listings_instant
+
+favstats(price~instant_bookable,data=listings_instant)
+
+t_test(price~instant_bookable,data=listings_instant)
+```
+
+
+## Further variables/questions to explore on our own
+
+Our dataset has many more variables, so here are some ideas on how you can extend your analysis
+
+1. Are the number of `bathrooms`, `bedrooms`, `beds`, or size of the house (`accomodates`) significant predictors of `price_4_nights`? Or might these be co-linear variables?
+1. Do superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables?
+1. Some hosts allow you to immediately book their listing (`instant_bookable == TRUE`), while a non-trivial proportion don't. After controlling for other variables, is `instant_bookable` a significant predictor of `price_4_nights`?
+1. For all cities, there are 3 variables that relate to neighbourhoods: `neighbourhood`, `neighbourhood_cleansed`, and `neighbourhood_group_cleansed`. There are typically more than 20 neighbourhoods in each city, and it wouldn't make sense to include them all in your model. Use your city knowledge, or ask someone with city knowledge, and see whether you can group neighbourhoods together so the majority of listings falls in fewer (5-6 max) geographical areas. You would thus need to create a new categorical variabale `neighbourhood_simplified` and determine whether location is a predictor of `price_4_nights`
+1. What is the effect of `avalability_30` or `reviews_per_month` on `price_4_nights`, after we control for other variables?
+
+
+## Diagnostics, collinearity, summary tables
+
+As you keep building your models, it makes sense to:
+
+1. Check the residuals, using `autoplot(model_x)`
+1. As you start building models with more explanatory variables, make sure you use `car::vif(model_x)`` to calculate the **Variance Inflation Factor (VIF)** for your predictors and determine whether you have colinear variables. A general guideline is that a VIF larger than 5 or 10 is large, and your model may suffer from collinearity. Remove the variable in question and run your model again without it.
+
+
+
+1. Create a summary table, using `huxtable` (https://mfa2022.netlify.app/example/modelling_side_by_side_tables/) that shows which models you worked on, which predictors are significant, the adjusted $R^2$, and the Residual Standard Error.
+1. Finally, you must use the best model you came up with for prediction. Suppose you are planning to visit the city you have been assigned to over reading week, and you want to stay in an Airbnb. Find Airbnb's in your destination city that are apartments with a private room, have at least 10 reviews, and an average rating of at least 90. Use your best model to predict the total cost to stay at this Airbnb for 4 nights. Include the appropriate 95% interval with your prediction. Report the point prediction and interval in terms of `price_4_nights`. 
+  - if you used a log(price_4_nights) model, make sure you anti-log to convert the value in $. You can read more about [hot to interpret a regression model when some variables are log transformed here](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/)
