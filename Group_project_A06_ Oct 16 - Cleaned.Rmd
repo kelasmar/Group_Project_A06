@@ -2166,9 +2166,18 @@ Let's print the two final models
 
 ```{r}
 huxreg(list(
-  "Prev Model" = model_final, 
-  "- instant bookable - last_review" = model_final_2))
-
+  "Prop Type, Reviews, Rating" = model1, 
+  "+ Room Type" = model2, 
+  "+ Beds + Bedrooms + Accom." = model3_1, 
+  "- Beds" = model3_2, 
+  "- Prop Type" = model3_3, 
+  " - Room Type + Prop Type"  = model3_4, 
+  "+ Superhost" = model4, 
+  "+ immidiate bookings" = model5, 
+  "+ Neighbourhoods" = model6, 
+  "+ Availability" = model7, 
+  "+ license" = model8, 
+  "FINAL - instant bookable - last_review" = model_final_2))
 ```
 
 We see now we have significant variables and rhe model 2nd model is almost equivilantly good at predicting prices. 
@@ -2242,7 +2251,11 @@ skim(targets$predicted_price)
 
 The point prediction is the mean equivalent of a price for 2 people for 4 nights of 381.25  
 
-The confindence interval for the mean payment of 2 people spending 4 nights is 375-386 $. 
+The confindence interval for the mean payment of 2 people spending 4 nights is 376-387. 
+
+```{r}
+autoplot(model_final_2)
+```
 
 
 # Acknowledgements
