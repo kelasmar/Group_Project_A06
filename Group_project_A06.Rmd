@@ -342,7 +342,7 @@ ggplot(listings_neigh,aes(x=log(price),fill = neighbourhood_cleansed))+
       theme_classic() + 
     NULL
 
-
+## The graph below shows that neighbourhoods with more than 1,000 listings have a normal distribution.
 ```
 
 ```{r}
