@@ -1,7 +1,7 @@
 ---
 title: "Final Group Project: AirBnB analytics"
 date: "12 Oct 2021"
-author: "Reading Time: About 8 minutes"
+author: "Reading Time: About 8 minutes, Authors: Karim El Asmar, Stepan Emelianenko, Nelly Gray, Ziqi Li, Ray Park, Shirley Wan, Ditlev Meulengracht"
 output:
   html_document:
     highlight: zenburn
@@ -2276,6 +2276,11 @@ The confindence interval for the mean payment of 2 people spending 4 nights is 3
 
 - The data for this project is from [insideairbnb.com](insideairbnb.com)
 
+
+
+# Authors
+
+Karim El Asmar, Stepan Emelianenko, Nelly Gray, Ziqi Li, Ray Park, Shirley Wan, Ditlev Meulengracht
 
 
 
