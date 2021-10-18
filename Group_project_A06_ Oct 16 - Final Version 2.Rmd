@@ -43,6 +43,35 @@ library(car)
 ```
 
 
+# Executive Summary
+
+In our final group assignment, we will analyze data about Airbnb listings and fit a model to predict the total cost for two people staying 4 nights in an Airbnb in a city. We have chosen Amsterdam for our analysis. 
+
+Our prediction is that the average price of a 4-night stays for 2 people in a room rate 4.5 or above in Amsterdam is between 376$-387$. 
+
+The following variables that can be used to determine the prices impact the price positively:
+
+- The rating of reviews
+- The number of bedrooms and the capacity of the rental home (accommodates)
+- The room type with hotel rooms and entire apartments
+- Super host attracts more clients and can charge a premium
+- Highly available rooms positively impact the price. There might be a bigger market for cheap rooms which are less available. 
+- Most popular neighborhood positively impacts the price. 
+
+The following variables that can be used to determine the prices impact the price negatively:
+
+- Some Room Types: Private and Shared rooms. These rooms might be smaller, and clients of these rooms (students) might be willing to pay less for a rental unit. The room type with hotel rooms and entire apartments being the most expensive units. 
+- The number of reviews. It is likely because clients see a place with a lot of reviews less exclusive. This might also serve as a proxy for total visits (and cheaper places will likely have less visist)
+
+The following variables were not used because they didn’t seem relevant for our models: 
+- The property types and number of beds capture the same information as room type and the number of bedrooms. 
+- The presence of a license is not relevant.
+- Last reviews, compared to the average rating, don’t give additional information. 
+
+
+Next potential steps:
+Using these variables, we were able to explain up to 50% of the price differences. Other variables such as the photos, number of visits, the host presentation can help explain more accurately the price. Areas for further exploration include exploring different cities, seasons in terms of price. 
+
 # Introduction
 
 In our final group assignment we are going to analyse data about Airbnb listings and fit a model to predict the total cost for two people staying 4 nights in an AirBnB in a city. We have chosen Amsterdam for our analysis. 
@@ -2243,7 +2272,7 @@ In sum our model:
 
 ## Model test on Airbnb's
 
-We will now try to use our model to predict prices for staying for 4 nights, in a private room, with at least 10 reviews, and reviews above 4.5 
+We will now try to use our model to predict prices for staying for 4 nights, in a private room, with at least 10 reviews, and reviews above 4.98 (We use 4.98 to lower sample size)
 
 First let us define our target segment
 
@@ -2261,23 +2290,126 @@ targets <- listings_4 %>%
          #At least 10 reviews
          number_of_reviews >= 10, 
          
-         #A score above 4.5
-         review_scores_rating >= 4.5) %>%
+         #A score above 4.9
+         review_scores_rating >= 4.98) %>%
   
   #Predicted values in log
   mutate(log_predicted_values = predict(model_final, .),
          
          #Predicted Values Nominal
-         predicted_price = exp(log_predicted_values)) 
+         prediction = exp(log_predicted_values)) 
 
+targets
+
+
+
+
+
+```
+
+We now have our predictions in place. Lets get the lower and upper CI. To do that we need the Sigma (Residual Standard Eroro)
+
+```{r}
+
+#Let us take a look at our model
+
+modelsigma <- model_final %>% 
+  
+  #Glance at key summary
+  glance() %>% 
+  
+  #Select Sigma
+  select(sigma)
+
+modelsigma
+
+```
+
+Our Residual STandard error is 0.35. We need to add 2x the residual standard error to get the prediction. Let's add this to our predicted values.
+
+
+```{r}
+
+
+#Utilizing the full dataset
+targets_prediction <- targets %>%
+  
+  #Adding the Sigma to a column
+  mutate(sigma = 0.3512151, 
+         
+         #Getting the Lower CI in log values
+         lower_ci = log_predicted_values - sigma*2,
+         
+         #Getting the upper CI in log values
+         upper_ci = log_predicted_values + sigma*2, 
+         
+         #Converting Lower  CI to actual values
+         LowerCI = exp(lower_ci), 
+         
+         #Converting Upper CI to actual values
+         UpperCI = exp(upper_ci)) %>% 
+  
+  #Selecting key variables
+  select(price_4_nights, prediction, LowerCI, UpperCI)
+
+targets_prediction
+
+
+
+```
+
+Although our predicted price is not always correct, we see that the 95% confidence interval covers the price in a majority of outcomes.
+
+We also see that because of our low R squared these intervals are extremely broad. 
+
+Just for reference we want to plot these 
+
+```{r}
+
+targets_prediction_plot <- targets_prediction %>% 
+  
+  pivot_longer(cols = 2:4, 
+               names_to = "Interval", 
+                values_to = "price")
+
+
+#Plotting the intervals density
+ggplot(targets_prediction_plot, aes(x = price, fill = Interval)) + 
+  
+  #Predicted prices
+       geom_density(alpha = 0.2) + 
+  
+  #Simple Theme
+  theme_bw() + 
+  
+  labs(title = "Predicted prices versus confidence intervals",
+       x = "Predicted Price", 
+       y = "Density") +
+  
+  
+  NULL
+
+
+```
+
+We see there is a great difference between our predicted price and lower and upper confidence intervals. 
+
+This shows us that the model although it explains 48% still has quite high variety in the prices. 
+
+I.e. some prices go as high as 1,500
+
+Let's look at a final summary for referne
+
+
+```{r}
 
 #Summarizing statistics
 targets_test <- targets %>% 
   
   summarise(
-    average_price=mean(predicted_price), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
+    average_price=mean(prediction), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
             
-    sd_price=sd(predicted_price), #Standard Deviation
+    sd_price=sd(prediction), #Standard Deviation
             
     count= n(), #Observations
            
@@ -2293,28 +2425,12 @@ targets_test <- targets %>%
 
 
 targets_test
-         
-
-skim(targets$predicted_price)
-
-
 
 ```
 
 
 The point prediction is the mean equivalent of a price for 2 people for 4 nights of 381.25  
 
-The 95% confindence interval for the mean payment of 2 people spending 4 nights is 376-387 $. 
-
-For reference we wanna see the statistics of the actual values: 
-
-```{r}
-favstats(targets$price_4_nights)
-```
-
-In comparison, the actual mean is $401 which is close to our model, and the differences makes sense given there is only a 50% explanatory power in our model. 
-
-We hypothesize that our model may be improved by finding a variable that can explain high value outliers, however, we have not come across such a relationship in any of the variables we looked into in the EDA. 
 
 
 # Acknowledgements
