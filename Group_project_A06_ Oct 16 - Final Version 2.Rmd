@@ -1,7 +1,7 @@
 ---
 title: "Final Group Project: AirBnB analytics"
-date: "12 Oct 2021"
-author: "Reading Time: About 8 minutes, Authors: Karim El Asmar, Stepan Emelianenko, Nelly Gray, Ziqi Li, Ray Park, Shirley Wan, Ditlev Meulengracht"
+date: "18 Oct 2021"
+author: "Authors: Karim El Asmar, Stepan Emelianenko, Nelly Gray, Ziqi Li, Ray Park, Shirley Wan, Ditlev Meulengracht"
 output:
   html_document:
     highlight: zenburn
@@ -1571,6 +1571,8 @@ ggplot(listings_4,aes(x=log(price_4_nights)))+
 
 We see that taking the log of prices brings us much closer to a normal distribution why we use log prices going forward. 
 
+This is the same conclusion we made above here we just plotted the distribution for 4 nights and after adjusting our dataset throughout the above code. 
+
 ## Models
 
 ### Model 1: property type, number of reviews and the rating scores
@@ -1598,7 +1600,7 @@ listings_test <- testing(train_test_split)
 
 
 
-Lets now create the model:
+Lets now create the model using the initial variables:
 
 ```{r}
 
@@ -1677,6 +1679,8 @@ car::vif(model2)
 Let's keep the variables in given they are below 5 but there is some overlap between property type and room type. 
 
 We may have to account for this later on. 
+
+Also we earlier thought about accounting for number of reviews across properties types (e.g. by including the product of the two) but we will look into this relationship later once we confirm whether or not to keep property type as a variable. 
 
 
 
@@ -1798,6 +1802,31 @@ This model has an adjusted r square of 0.3659 and adds variables beds, bedrooms 
 - Each Bedroom adds 0.118 to the log price
 - Each Accommodates increase adds 0.126 to the log price. 
 
+
+We earlier commented that the relationship of number of ratings depends on room type so we analyze a model looking into the product of the two: 
+
+
+```{r}
+#Same model but without Property Type
+model3_3_product <- lm(
+  
+  log(price_4_nights) ~ 
+    
+    #Explanatory Variables
+    number_of_reviews+
+    review_scores_rating + 
+    room_type+
+    bedrooms + 
+    accommodates + 
+    room_type*number_of_reviews, 
+  
+  data = listings_train)
+
+#Same model but without Room Type
+summary(model3_3_product)
+```
+
+This input does not offer addiitonal explanatory power and includes 3 additional variables so we will not consider it going forward. 
 
 ### Model4: Superhosts
 We want to explore whether the superhosts `(host_is_superhost`) command a pricing premium, after controlling for other variables. 
@@ -2186,6 +2215,7 @@ huxreg(list(
   "- Beds" = model3_2, 
   "- Prop Type" = model3_3, 
   " - Room Type + Prop Type"  = model3_4, 
+  " + No Reviews*Room_type"  = model3_3_product, 
   "+ Superhost" = model4, 
   "+ immidiate bookings" = model5, 
   "+ Neighbourhoods" = model6, 
