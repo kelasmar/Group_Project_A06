@@ -47,7 +47,7 @@ library(car)
 
 In our final group assignment, we will analyze data about Airbnb listings and fit a model to predict the total cost for two people staying 4 nights in an Airbnb in a city. We have chosen Amsterdam for our analysis. 
 
-Our prediction is that the average price of a 4-night stays for 2 people in a room rate 4.5 or above in Amsterdam is between 376$-387$. 
+Our prediction is that the average price of a 4-night stays for 2 people in a room rate 4.98 or above in Amsterdam is 404 USD. However, our model only explains about 50% of price variation and this may estimate may be as low as 200 USD and as high as 815 USD. 
 
 The following variables that can be used to determine the prices impact the price positively:
 
@@ -2354,13 +2354,13 @@ targets_prediction <- targets %>%
 
 targets_prediction
 
+skim(targets_prediction)
 
 
 ```
 
-Although our predicted price is not always correct, we see that the 95% confidence interval covers the price in a majority of outcomes.
 
-We also see that because of our low R squared these intervals are extremely broad. 
+We also see that because of our low R squared these intervals are extremely broad. In fact the mean prediction is on average 404, however, the 95% confidence intervals are on average 200 for the lower interval and and as high as 815 for the upper interval. 
 
 Just for reference we want to plot these 
 
@@ -2396,41 +2396,7 @@ We see there is a great difference between our predicted price and lower and upp
 
 This shows us that the model although it explains 48% still has quite high variety in the prices. 
 
-I.e. some prices go as high as 1,500
-
-Let's look at a final summary for referne
-
-
-```{r}
-
-#Summarizing statistics
-targets_test <- targets %>% 
-  
-  summarise(
-    average_price=mean(prediction), #Mean, we choose to ignore any missing values by setting the 'na.rm = TRUE'
-            
-    sd_price=sd(prediction), #Standard Deviation
-            
-    count= n(), #Observations
-           
-    t_critical = qt(0.975,count-1), #T-Critical at 95% Confidence Interval and these observations
-            
-    se_price=sd_price/sqrt(count), #Standard Error 
-           
-    margin_of_error= t_critical*se_price, #Margin of Error
-            
-    price_low= average_price - margin_of_error, #Lower interval
-            
-    price_high= average_price + margin_of_error) #Upper Interval 
-
-
-targets_test
-
-```
-
-
-The point prediction is the mean equivalent of a price for 2 people for 4 nights of 381.25  
-
+I.e. some predicted prices go as high as 1,500 and as close to 0 within the 95% confidence interval.
 
 
 # Acknowledgements

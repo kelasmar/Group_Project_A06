@@ -3,9 +3,10 @@
 ## Executive Summary
 
 
+
 In our final group assignment, we will analyze data about Airbnb listings and fit a model to predict the total cost for two people staying 4 nights in an Airbnb in a city. We have chosen Amsterdam for our analysis. 
 
-Our prediction is that the average price of a 4-night stays for 2 people in a room rate 4.5 or above in Amsterdam is between 376$-387$. 
+Our prediction is that the average price of a 4-night stays for 2 people in a room rate 4.98 or above in Amsterdam is 404 USD. However, our model only explains about 50% of price variation and this may estimate may be as low as 200 USD and as high as 815 USD. 
 
 The following variables that can be used to determine the prices impact the price positively:
 
