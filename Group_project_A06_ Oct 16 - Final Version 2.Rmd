@@ -2225,11 +2225,21 @@ huxreg(list(
   "FINAL (- instant bookable - last_review)" = model_final))
 ```
 
-We see now we have significant variables and rhe model 2nd model is almost equivilantly good at predicting prices. 
+We see now we have significant variables and the final model has less variables but still decent explanatory power (48.8%) and similar RMSE in the test and training set. 
 
 Interestingly, our model only predicts roughly 50% of price variations. The remaining 50% is explained by variables not included here. 
 
-50% does seem high given the final model is only using 8 different variables with some of the being categorical. 
+50% does seem high given the final model is only using 8 different variables with some of the being categorical.
+
+In sum our model: 
+
+- Has explanatory power of 48.8%
+- Has not overfitting issues and RMSE is similar in the testing and training set both around 0.35
+- Has no correlation issues with all VIF factors scoring below 2.5
+- Has no difference in the residuals as the fitted values increase
+- Is approximately following the normal distribution. 
+
+
 
 ## Model test on Airbnb's
 
