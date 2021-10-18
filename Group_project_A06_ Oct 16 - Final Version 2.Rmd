@@ -64,7 +64,9 @@ listings <- vroom("http://data.insideairbnb.com/the-netherlands/north-holland/am
 # Exploratory Data Analysis (EDA)
 
 
-Let's first get an overview of our data
+Let's first get an overview of our data. 
+
+Afterward we will wrangle the data so that we can work with it in our models and plot some of the key relationships. 
 
 ## Data overview
 
@@ -76,6 +78,7 @@ glimpse(listings)
 skim(listings)
 
 ```
+
 
 First out of interest we would like to plot a map of the raw dataset. 
 
@@ -1991,7 +1994,7 @@ License is not a significant predictor of price when controlling for remaining v
 
 ```{r}
 #Model 7 + Last Review
-model_final <- lm(
+model9 <- lm(
   
   #Variable to predict
   log(price_4_nights) ~ 
@@ -2011,7 +2014,7 @@ model_final <- lm(
   #Dataset
   data = listings_train)
 
-summary(model_final)
+summary(model9)
 ```
 Last review is a significant predicotr of price and for each day of more recent reviews the prices are 0.00007 higher. 
 
@@ -2024,7 +2027,7 @@ Last review is a significant predicotr of price and for each day of more recent 
 Let's check the VIF for our final model
 
 ```{r}
-vif(model_final)
+vif(model9)
 ```
 
 
@@ -2035,34 +2038,12 @@ Variance inflation factor is below 5 for all variables which shows no sign of au
 Let's also plot the model using the autoplot to check for potential issues: 
 
 ```{r}
-autoplot(model_final)
+autoplot(model9)
 ```
 For our model we see that resudual errors are evenly distributed and do not change as the variable fitted values change. This is a good sign for our model.
 
 Futhermore we see from the theoretical quantiles that our model is approximately evenly distributed but not 100% evenly distributed. 
 
-
-### Summary Huxtable
-
-Let's summarize our models in a table
-
-
-```{r}
-huxreg(list(
-  "Prop Type, Reviews, Rating" = model1, 
-  "+ Room Type" = model2, 
-  "+ Beds + Bedrooms + Accom." = model3_1, 
-  "- Beds" = model3_2, 
-  "- Prop Type" = model3_3, 
-  " - Room Type + Prop Type"  = model3_4, 
-  "+ Superhost" = model4, 
-  "+ immidiate bookings" = model5, 
-  "+ Neighbourhoods" = model6, 
-  "+ Availability" = model7, 
-  "+ license" = model8, 
-  "+ last_review" = model_final))
-
-```
 
 Our final model has an r-squared of 0.494 and excludes the license categorical variable (Y/N), beds (numerical), and property type. 
 
@@ -2076,7 +2057,7 @@ We now test our model for overfitting
 rmse_train <- listings_train %>% 
   
   #Calculating RMSE
-  mutate(predictions = predict(model_final, .)) %>% 
+  mutate(predictions = predict(model9, .)) %>% 
   select(predictions,price_4_nights) %>% 
   mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
   summarise(rmse = sqrt(mean(squared_error))) %>% 
@@ -2090,7 +2071,7 @@ rmse_train
 rmse_test <- listings_test %>% 
   
   #Calculating RMSE
-  mutate(predictions = predict(model_final, .)) %>% 
+  mutate(predictions = predict(model9, .)) %>% 
   select(predictions,price_4_nights) %>% 
   mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
   summarise(rmse = sqrt(mean(squared_error))) %>% 
@@ -2104,11 +2085,13 @@ rmse_test
 
 There seems to be no overfitting in our model. Let's see if we can adjust the final model by taking out some of the less key variables without loosing explanatory power.
 
+Specifically last review and instant bookable seemed to have little effects on the explanatory power
+
 ## Adjusting final model for unneccessary variables
 
 ```{r}
 #Model final adjusted without instant_bookable and without last review:
-model_final_2 <- lm(
+model_final <- lm(
   
   #Variable to predict
   log(price_4_nights) ~ 
@@ -2126,7 +2109,7 @@ model_final_2 <- lm(
   #Dataset
   data = listings_train)
 
-summary(model_final_2)
+summary(model_final)
 ```
 
 We still keep quite a high explanatory power of 0.487% so let's see again the RMSE
@@ -2138,7 +2121,7 @@ We still keep quite a high explanatory power of 0.487% so let's see again the RM
 rmse_train <- listings_train %>% 
   
   #Calculating RMSE
-  mutate(predictions = predict(model_final_2, .)) %>% 
+  mutate(predictions = predict(model_final, .)) %>% 
   select(predictions,price_4_nights) %>% 
   mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
   summarise(rmse = sqrt(mean(squared_error))) %>% 
@@ -2152,7 +2135,7 @@ rmse_train
 rmse_test <- listings_test %>% 
   
   #Calculating RMSE
-  mutate(predictions = predict(model_final_2, .)) %>% 
+  mutate(predictions = predict(model_final, .)) %>% 
   select(predictions,price_4_nights) %>% 
   mutate(squared_error = (predictions - log(price_4_nights))^2) %>% 
   summarise(rmse = sqrt(mean(squared_error))) %>% 
@@ -2164,28 +2147,30 @@ rmse_test
 
 ```
 
-Our RMSE is still low
+Our RMSE is still low which is good
 
 ## Final Model
-
 
 First let us summarize the final model:
 
 ```{r}
-summary(model_final_2)
+summary(model_final)
 ```
 
+The model has an adjusted r square and explanatory power of 48.69%. 
 
 Let's check for issues with residuals. 
 
 ```{r}
-autoplot(model_final_2)
+autoplot(model_final)
 ```
 
 Again we see there are no issues with residuals or with normal distribution.
 
+Let's check VIF as well
+
 ```{r}
-vif(model_final_2)
+vif(model_final)
 ```
 
 
@@ -2206,7 +2191,8 @@ huxreg(list(
   "+ Neighbourhoods" = model6, 
   "+ Availability" = model7, 
   "+ license" = model8, 
-  "FINAL - instant bookable - last_review" = model_final_2))
+  "+ last review" = model9,
+  "FINAL (- instant bookable - last_review)" = model_final))
 ```
 
 We see now we have significant variables and rhe model 2nd model is almost equivilantly good at predicting prices. 
@@ -2218,7 +2204,6 @@ Interestingly, our model only predicts roughly 50% of price variations. The rema
 ## Model test on Airbnb's
 
 We will now try to use our model to predict prices for staying for 4 nights, in a private room, with at least 10 reviews, and reviews above 4.5 
-
 
 First let us define our target segment
 
@@ -2279,7 +2264,17 @@ skim(targets$predicted_price)
 
 The point prediction is the mean equivalent of a price for 2 people for 4 nights of 381.25  
 
-The confindence interval for the mean payment of 2 people spending 4 nights is 376-387 $. 
+The 95% confindence interval for the mean payment of 2 people spending 4 nights is 376-387 $. 
+
+For reference we wanna see the statistics of the actual values: 
+
+```{r}
+favstats(targets$price_4_nights)
+```
+
+In comparison, the actual mean is $401 which is close to our model, and the differences makes sense given there is only a 50% explanatory power in our model. 
+
+We hypothesize that our model may be improved by finding a variable that can explain high value outliers, however, we have not come across such a relationship in any of the variables we looked into in the EDA. 
 
 
 # Acknowledgements
